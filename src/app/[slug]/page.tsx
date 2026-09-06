@@ -1,28 +1,22 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { projects } from "@/data/projects";
+import {
+  findProjectBySlug,
+  getProjectSlug,
+  projects,
+} from "@/data/projects";
 
 type PageProps = { params: Promise<{ slug: string }> };
 
-function findHostedProject(slug: string) {
-  return projects.find(
-    (project) =>
-      project.path &&
-      project.path.slice(1).toLowerCase() === slug.toLowerCase(),
-  );
-}
-
 export function generateStaticParams() {
-  return projects
-    .filter((project) => project.path)
-    .map((project) => ({ slug: project.path!.slice(1) }));
+  return projects.map((project) => ({ slug: getProjectSlug(project.name) }));
 }
 
 export async function generateMetadata({
   params,
 }: PageProps): Promise<Metadata> {
   const { slug } = await params;
-  const project = findHostedProject(slug);
+  const project = findProjectBySlug(slug);
   if (!project) return {};
 
   return {
@@ -33,8 +27,8 @@ export async function generateMetadata({
 
 export default async function HostedProjectPage({ params }: PageProps) {
   const { slug } = await params;
-  const project = findHostedProject(slug);
-  if (!project?.path) notFound();
+  const project = findProjectBySlug(slug);
+  if (!project) notFound();
 
   return (
     <iframe

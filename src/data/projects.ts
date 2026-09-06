@@ -7,19 +7,29 @@ export type Project = {
   name: string;
   tag: string;
   tagline: string;
-  /** External app URL. Used as iframe src when `path` is set. */
+  /** External app URL, embedded in the hosted project page iframe. */
   href: string;
-  /** Same-origin route, e.g. /jardCAD */
-  path?: string;
   image?: StaticImageData;
 };
 
-export function getProjectLink(project: Project): string {
-  return project.path ?? project.href;
+/** URL segment from project name, e.g. "Actual Tennis" -> "ActualTennis". */
+export function getProjectSlug(name: string): string {
+  return name.replace(/\s+/g, "");
 }
 
-export function isInternalProject(project: Project): boolean {
-  return Boolean(project.path);
+export function getProjectPath(project: Project): string {
+  return `/${getProjectSlug(project.name)}`;
+}
+
+export function getProjectLink(project: Project): string {
+  return getProjectPath(project);
+}
+
+export function findProjectBySlug(slug: string): Project | undefined {
+  return projects.find(
+    (project) =>
+      getProjectSlug(project.name).toLowerCase() === slug.toLowerCase(),
+  );
 }
 
 export const projects: Project[] = [
@@ -28,7 +38,6 @@ export const projects: Project[] = [
     tag: "CAD",
     tagline: "Window frame builder",
     href: "https://jard-plum.vercel.app",
-    path: "/jardCAD",
     image: jardImage,
   },
   {
