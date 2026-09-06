@@ -7,9 +7,11 @@ import { projects, type Project, getProjectLink } from "@/data/projects";
 const AUTO_DURATION_S = 40;
 const MOBILE_AUTO_DURATION_S = 35;
 const DRAG_THRESHOLD = 6;
+const LINK_DRAG_THRESHOLD = 14;
 const MOMENTUM_FRICTION = 0.92;
 const MIN_VELOCITY = 0.35;
 const SYNTHETIC_MOUSE_GRACE_MS = 1500;
+const AUTO_RESUME_DELAY_MS = 600;
 const STALL_RECOVERY_MS = 2000;
 const CAROUSEL_OFFSET_KEY = "nordlys-projects-carousel-offset";
 const CAROUSEL_SAVE_INTERVAL_MS = 1000;
@@ -89,7 +91,6 @@ export function ProjectsCarousel() {
   const startXRef = useRef(0);
   const startYRef = useRef(0);
   const velocityRef = useRef(0);
-  const suppressClickRef = useRef(false);
 
   useEffect(() => {
     const viewport = viewportRef.current;
@@ -110,10 +111,13 @@ export function ProjectsCarousel() {
     let lastTime = 0;
     let speed = 0;
     let activePointerId: number | null = null;
+    let pressedLink: HTMLAnchorElement | null = null;
+    let didDragThisGesture = false;
     let hoverPaused = false;
     let interactionPaused = false;
     let ignoreHoverPause = false;
     let interactionSafetyTimer: number | undefined;
+    let resumeTimer: number | undefined;
     let lastTouchEndTime = 0;
     let pausedSince = 0;
     let lastSaveTime = 0;
@@ -188,14 +192,29 @@ export function ProjectsCarousel() {
       return !hoverPaused;
     };
 
+    const cancelResumeAuto = () => {
+      window.clearTimeout(resumeTimer);
+      resumeTimer = undefined;
+    };
+
     const resumeAuto = () => {
+      cancelResumeAuto();
       interactionPaused = false;
       ignoreHoverPause = true;
       pausedSince = 0;
       lastTime = 0;
     };
 
+    const scheduleResumeAuto = () => {
+      cancelResumeAuto();
+      resumeTimer = window.setTimeout(() => {
+        resumeTimer = undefined;
+        resumeAuto();
+      }, AUTO_RESUME_DELAY_MS);
+    };
+
     const pauseInteraction = () => {
+      cancelResumeAuto();
       interactionPaused = true;
       lastTime = 0;
       if (pausedSince === 0) pausedSince = Date.now();
@@ -229,15 +248,26 @@ export function ProjectsCarousel() {
 
       if (Math.abs(velocityRef.current) < MIN_VELOCITY) {
         velocityRef.current = 0;
-        resumeAuto();
+        scheduleResumeAuto();
       }
+    };
+
+    const getDragThreshold = () =>
+      pressedLink ? LINK_DRAG_THRESHOLD : DRAG_THRESHOLD;
+
+    const beginDrag = (x: number) => {
+      dragActiveRef.current = true;
+      didDragThisGesture = true;
+      lastXRef.current = x;
+      ignoreHoverPause = false;
+      pauseInteraction();
     };
 
     const beginInteraction = (id: number, x: number, y: number) => {
       stopTracking();
       activePointerId = id;
       dragActiveRef.current = false;
-      suppressClickRef.current = false;
+      didDragThisGesture = false;
       startXRef.current = x;
       startYRef.current = y;
       lastXRef.current = x;
@@ -263,9 +293,9 @@ export function ProjectsCarousel() {
       if (!dragActiveRef.current) {
         const totalX = Math.abs(x - startXRef.current);
         const totalY = Math.abs(y - startYRef.current);
-        if (totalX > DRAG_THRESHOLD && totalX > totalY) {
-          dragActiveRef.current = true;
-          suppressClickRef.current = true;
+        const threshold = getDragThreshold();
+        if (totalX > threshold && totalX > totalY) {
+          beginDrag(x);
         } else {
           return;
         }
@@ -285,7 +315,16 @@ export function ProjectsCarousel() {
         lastTouchEndTime = Date.now();
       }
 
+      const linkToOpen = pressedLink;
+      const shouldOpenLink = Boolean(linkToOpen) && !didDragThisGesture;
+
       finishInteraction();
+
+      if (shouldOpenLink && linkToOpen) {
+        linkToOpen.click();
+      }
+
+      pressedLink = null;
     };
 
     const onDocumentPointerMove = (event: PointerEvent) => {
@@ -326,6 +365,17 @@ export function ProjectsCarousel() {
       if (event.pointerType === "mouse" && event.button !== 0) return;
       if (shouldIgnorePointerDown(event.pointerType)) return;
 
+      const target = event.target;
+      pressedLink =
+        target instanceof Element
+          ? target.closest<HTMLAnchorElement>("a.projects-carousel-card")
+          : null;
+
+      // Let the browser handle normal mouse clicks on project links.
+      if (pressedLink && event.pointerType === "mouse") {
+        return;
+      }
+
       beginInteraction(event.pointerId, event.clientX, event.clientY);
 
       document.addEventListener("pointermove", onDocumentPointerMove, {
@@ -340,6 +390,12 @@ export function ProjectsCarousel() {
       if (event.touches.length !== 1) return;
 
       const touch = event.touches[0];
+      const target = event.target;
+      pressedLink =
+        target instanceof Element
+          ? target.closest<HTMLAnchorElement>("a.projects-carousel-card")
+          : null;
+
       beginInteraction(touch.identifier, touch.clientX, touch.clientY);
 
       document.addEventListener("touchmove", onDocumentTouchMove, {
@@ -370,7 +426,7 @@ export function ProjectsCarousel() {
           if (Math.abs(velocityRef.current) < MIN_VELOCITY) {
             velocityRef.current = 0;
             if (interactionPaused) {
-              resumeAuto();
+              scheduleResumeAuto();
             }
           }
 
@@ -394,14 +450,6 @@ export function ProjectsCarousel() {
       }
 
       rafId = requestAnimationFrame(tick);
-    };
-
-    const onClick = (event: MouseEvent) => {
-      if (suppressClickRef.current) {
-        event.preventDefault();
-        event.stopPropagation();
-        suppressClickRef.current = false;
-      }
     };
 
     const onMouseEnter = () => {
@@ -439,7 +487,6 @@ export function ProjectsCarousel() {
       capture: true,
       passive: false,
     });
-    viewport.addEventListener("click", onClick, true);
     viewport.addEventListener("mouseenter", onMouseEnter);
     viewport.addEventListener("mouseleave", onMouseLeave);
     window.addEventListener("pagehide", onPageHide);
@@ -448,12 +495,12 @@ export function ProjectsCarousel() {
       saveOffset();
       cancelAnimationFrame(rafId);
       window.clearTimeout(interactionSafetyTimer);
+      cancelResumeAuto();
       stopTracking();
       window.removeEventListener("pagehide", onPageHide);
       resizeObserver.disconnect();
       viewport.removeEventListener("pointerdown", onPointerDown, true);
       viewport.removeEventListener("touchstart", onTouchStart, true);
-      viewport.removeEventListener("click", onClick, true);
       viewport.removeEventListener("mouseenter", onMouseEnter);
       viewport.removeEventListener("mouseleave", onMouseLeave);
     };
