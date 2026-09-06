@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useEffect, useRef } from "react";
-import { projects, type Project } from "@/data/projects";
+import { projects, type Project, getProjectLink, isInternalProject } from "@/data/projects";
 
 const AUTO_DURATION_S = 40;
 const MOBILE_AUTO_DURATION_S = 35;
@@ -66,9 +66,10 @@ function ProjectCard({
 
   return (
     <a
-      href={project.href}
-      target="_blank"
-      rel="noreferrer"
+      href={getProjectLink(project)}
+      {...(isInternalProject(project)
+        ? {}
+        : { target: "_blank", rel: "noreferrer" })}
       draggable={false}
       className={
         className ??

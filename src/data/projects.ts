@@ -7,9 +7,20 @@ export type Project = {
   name: string;
   tag: string;
   tagline: string;
+  /** External app URL. Used as iframe src when `path` is set. */
   href: string;
+  /** Same-origin route, e.g. /jardCAD */
+  path?: string;
   image?: StaticImageData;
 };
+
+export function getProjectLink(project: Project): string {
+  return project.path ?? project.href;
+}
+
+export function isInternalProject(project: Project): boolean {
+  return Boolean(project.path);
+}
 
 export const projects: Project[] = [
   {
@@ -17,6 +28,7 @@ export const projects: Project[] = [
     tag: "CAD",
     tagline: "Window frame builder",
     href: "https://jard-plum.vercel.app",
+    path: "/jardCAD",
     image: jardImage,
   },
   {
