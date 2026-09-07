@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Instrument_Serif, Outfit } from "next/font/google";
+import { PhoneShell } from "@/components/phone-shell";
 import "./globals.css";
 
 const outfit = Outfit({
@@ -25,6 +26,7 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
+  viewportFit: "cover",
   themeColor: "#030308",
   colorScheme: "dark",
 };
@@ -35,8 +37,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="en"
       className={`${outfit.variable} ${instrument.variable} h-full antialiased`}
     >
-      <body className="min-h-full overflow-x-hidden bg-background text-foreground">
-        {children}
+      <body className="bg-background text-foreground">
+        <PhoneShell>{children}</PhoneShell>
       </body>
     </html>
   );

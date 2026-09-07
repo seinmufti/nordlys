@@ -37,7 +37,7 @@ export const projects: Project[] = [
     name: "jardCAD",
     tag: "CAD",
     tagline: "Window frame builder",
-    href: "https://jard-plum.vercel.app",
+    href: "https://jard-plum.vercel.app/jardCAD/",
     image: jardImage,
   },
   {

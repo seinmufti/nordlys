@@ -1,20 +1,23 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useRef } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { projects, type Project, getProjectLink } from "@/data/projects";
 
-const AUTO_DURATION_S = 40;
-const MOBILE_AUTO_DURATION_S = 35;
-const DRAG_THRESHOLD = 6;
-const LINK_DRAG_THRESHOLD = 14;
-const MOMENTUM_FRICTION = 0.92;
-const MIN_VELOCITY = 0.35;
-const SYNTHETIC_MOUSE_GRACE_MS = 1500;
-const AUTO_RESUME_DELAY_MS = 600;
-const STALL_RECOVERY_MS = 2000;
-const CAROUSEL_OFFSET_KEY = "nordlys-projects-carousel-offset";
-const CAROUSEL_SAVE_INTERVAL_MS = 1000;
+const ADVANCE_MS = 3000;
+const SLIDE_MS = 350;
+const SWIPE_THRESHOLD = 48;
+const SWIPE_LINK_THRESHOLD = 12;
+const TAP_THRESHOLD = 10;
+const SWIPE_SUPPRESS_MS = 300;
+const LOOP_COPIES = 3;
 
 function ProjectCardContent({ project }: { project: Project }) {
   return (
@@ -23,13 +26,13 @@ function ProjectCardContent({ project }: { project: Project }) {
         {project.tag}
       </span>
 
-      <div className="projects-carousel-card-image">
+      <div className="projects-carousel-card-image flex min-h-0 flex-1 flex-col">
         {project.image ? (
           <Image
             src={project.image}
             alt=""
             fill
-            sizes="(max-width: 640px) 11rem, (max-width: 1024px) 14rem, 16rem"
+            sizes="(max-width: 640px) 45vw, 30vw"
             unoptimized
             className="object-contain object-center"
             draggable={false}
@@ -51,29 +54,33 @@ function ProjectCardContent({ project }: { project: Project }) {
 
 function ProjectCard({
   project,
-  className,
-  interactive = true,
+  isActive,
+  cardRef,
+  shouldSuppressClick,
 }: {
   project: Project;
-  className?: string;
-  interactive?: boolean;
+  isActive: boolean;
+  cardRef: (node: HTMLAnchorElement | null) => void;
+  shouldSuppressClick: () => boolean;
 }) {
-  if (!interactive) {
-    return (
-      <div className={className}>
-        <ProjectCardContent project={project} />
-      </div>
-    );
-  }
-
   return (
     <a
+      ref={cardRef}
       href={getProjectLink(project)}
       draggable={false}
-      className={
-        className ??
-        "projects-carousel-card flex shrink-0 flex-col justify-between rounded-2xl p-3 transition duration-300 active:brightness-125 sm:p-4 sm:hover:-translate-y-1 sm:hover:brightness-110"
-      }
+      onClick={(event) => {
+        if (shouldSuppressClick()) {
+          event.preventDefault();
+          return;
+        }
+        if (window.matchMedia("(pointer: coarse)").matches) {
+          event.preventDefault();
+          window.location.assign(getProjectLink(project));
+        }
+      }}
+      className={`projects-carousel-card flex shrink-0 flex-col justify-between rounded-2xl p-3 sm:p-4${
+        isActive ? " is-active" : ""
+      }`}
     >
       <ProjectCardContent project={project} />
     </a>
@@ -81,458 +88,351 @@ function ProjectCard({
 }
 
 export function ProjectsCarousel() {
+  const projectCount = projects.length;
+  const loopProjects = useMemo(
+    () =>
+      Array.from({ length: LOOP_COPIES }, () => projects).flat(),
+    [],
+  );
+  const middleStart = projectCount;
+
+  const [trackIndex, setTrackIndex] = useState(middleStart);
+  const [translateX, setTranslateX] = useState(0);
+  const [dragOffset, setDragOffset] = useState(0);
+  const [transitionEnabled, setTransitionEnabled] = useState(false);
+  const [isReady, setIsReady] = useState(false);
+  const [paused, setPaused] = useState(false);
+  const [isInteracting, setIsInteracting] = useState(false);
+  const [autoKey, setAutoKey] = useState(0);
   const viewportRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
-  const loopSetRef = useRef<HTMLDivElement>(null);
-  const offsetRef = useRef(0);
-  const loopWidthRef = useRef(0);
-  const dragActiveRef = useRef(false);
-  const lastXRef = useRef(0);
-  const startXRef = useRef(0);
-  const startYRef = useRef(0);
-  const velocityRef = useRef(0);
+  const cardRefs = useRef<(HTMLAnchorElement | null)[]>([]);
+  const isDraggingRef = useRef(false);
+  const didSwipeRef = useRef(false);
+  const dragStartXRef = useRef(0);
+  const dragStartYRef = useRef(0);
+  const activePointerIdRef = useRef<number | null>(null);
+  const pressedLinkRef = useRef<HTMLAnchorElement | null>(null);
+  const lastSwipeTimeRef = useRef(0);
+  const blockedNavigationRef = useRef(false);
+  const trackIndexRef = useRef(trackIndex);
+  const isSnappingRef = useRef(false);
+  const hasPositionedRef = useRef(false);
+
+  const logicalIndex =
+    ((trackIndex % projectCount) + projectCount) % projectCount;
+
+  useEffect(() => {
+    trackIndexRef.current = trackIndex;
+  }, [trackIndex]);
+
+  const centerOnIndex = useCallback((index: number) => {
+    const viewport = viewportRef.current;
+    const track = trackRef.current;
+    const card = cardRefs.current[index];
+    if (!viewport || !track || !card) return 0;
+
+    const sidePad = Math.max(0, viewport.clientWidth / 2 - card.offsetWidth / 2);
+    track.style.paddingLeft = `${sidePad}px`;
+    track.style.paddingRight = `${sidePad}px`;
+
+    const cardCenter = card.offsetLeft + card.offsetWidth / 2;
+    const nextTranslate = cardCenter - viewport.clientWidth / 2;
+    setTranslateX(nextTranslate);
+    return nextTranslate;
+  }, []);
+
+  const normalizeTrackIndex = useCallback(
+    (index: number) => {
+      if (index >= projectCount * 2) {
+        return index - projectCount;
+      }
+      if (index < projectCount) {
+        return index + projectCount;
+      }
+      return index;
+    },
+    [projectCount],
+  );
+
+  const navigateBy = useCallback((delta: number) => {
+    setDragOffset(0);
+    setTransitionEnabled(true);
+    setTrackIndex((current) => current + delta);
+    lastSwipeTimeRef.current = Date.now();
+    setPaused(false);
+    setAutoKey((key) => key + 1);
+  }, []);
+
+  useLayoutEffect(() => {
+    centerOnIndex(trackIndex);
+    setDragOffset(0);
+
+    if (!hasPositionedRef.current) {
+      hasPositionedRef.current = true;
+      requestAnimationFrame(() => {
+        setTransitionEnabled(true);
+        setIsReady(true);
+      });
+    }
+
+    if (isSnappingRef.current) {
+      isSnappingRef.current = false;
+      trackRef.current?.classList.remove("is-snapping");
+      requestAnimationFrame(() => {
+        setTransitionEnabled(true);
+      });
+    }
+  }, [trackIndex, centerOnIndex]);
 
   useEffect(() => {
     const viewport = viewportRef.current;
-    const track = trackRef.current;
-    const loopSet = loopSetRef.current;
-    if (!viewport || !track || !loopSet) return;
+    if (!viewport) return;
 
-    const prefersReducedMotion = window.matchMedia(
+    const observer = new ResizeObserver(() => {
+      centerOnIndex(trackIndexRef.current);
+      setDragOffset(0);
+    });
+    observer.observe(viewport);
+    return () => observer.disconnect();
+  }, [centerOnIndex]);
+
+  useEffect(() => {
+    const track = trackRef.current;
+    if (!track) return;
+
+    const onTransitionEnd = (event: TransitionEvent) => {
+      if (event.target !== track || event.propertyName !== "transform") return;
+
+      const index = trackIndexRef.current;
+      const normalized = normalizeTrackIndex(index);
+      if (normalized === index) return;
+
+      isSnappingRef.current = true;
+      track.classList.add("is-snapping");
+      setTransitionEnabled(false);
+      setTrackIndex(normalized);
+    };
+
+    track.addEventListener("transitionend", onTransitionEnd);
+    return () => track.removeEventListener("transitionend", onTransitionEnd);
+  }, [normalizeTrackIndex]);
+
+  useEffect(() => {
+    const reduced = window.matchMedia(
       "(prefers-reduced-motion: reduce)",
     ).matches;
-    if (prefersReducedMotion) return;
+    if (reduced || paused || isInteracting || !isReady) return;
 
-    const isCoarse = window.matchMedia("(pointer: coarse)").matches;
-    const canHover = window.matchMedia("(hover: hover)").matches;
-    const usingTouchHandlers = isCoarse;
+    const timer = window.setInterval(() => {
+      setTrackIndex((current) => current + 1);
+    }, ADVANCE_MS);
 
-    let rafId = 0;
-    let lastTime = 0;
-    let speed = 0;
-    let activePointerId: number | null = null;
-    let pressedLink: HTMLAnchorElement | null = null;
-    let didDragThisGesture = false;
-    let hoverPaused = false;
-    let interactionPaused = false;
-    let ignoreHoverPause = false;
-    let interactionSafetyTimer: number | undefined;
-    let resumeTimer: number | undefined;
-    let lastTouchEndTime = 0;
-    let pausedSince = 0;
-    let lastSaveTime = 0;
+    return () => window.clearInterval(timer);
+  }, [paused, autoKey, isInteracting, isReady]);
 
-    const saveOffset = () => {
-      const loop = loopWidthRef.current;
-      if (loop <= 0) return;
-
-      try {
-        sessionStorage.setItem(
-          CAROUSEL_OFFSET_KEY,
-          String(offsetRef.current / loop),
-        );
-      } catch {
-        // Ignore storage failures (private mode, quota, etc.).
-      }
-    };
-
-    const restoreOffset = () => {
-      const loop = loopWidthRef.current;
-      if (loop <= 0) return;
-
-      try {
-        const saved = sessionStorage.getItem(CAROUSEL_OFFSET_KEY);
-        if (!saved) return;
-
-        const ratio = parseFloat(saved);
-        if (!Number.isFinite(ratio)) return;
-
-        offsetRef.current = ratio * loop;
-        normalizeOffset();
-        apply();
-      } catch {
-        // Ignore storage failures.
-      }
-    };
-
-    const measure = () => {
-      const trackStyle = getComputedStyle(track);
-      const gap = parseFloat(trackStyle.columnGap || trackStyle.gap || "0");
-      loopWidthRef.current = loopSet.offsetWidth + gap;
-      const duration = isCoarse ? MOBILE_AUTO_DURATION_S : AUTO_DURATION_S;
-      speed =
-        loopWidthRef.current > 0 ? loopWidthRef.current / duration : 0;
-    };
-
-    const normalizeOffset = () => {
-      const loop = loopWidthRef.current;
-      if (loop <= 0) return;
-
-      while (offsetRef.current >= loop) {
-        offsetRef.current -= loop;
-      }
-      while (offsetRef.current < 0) {
-        offsetRef.current += loop;
-      }
-    };
-
-    const apply = () => {
-      track.style.transform = `translate3d(-${offsetRef.current}px, 0, 0)`;
-    };
-
-    const shiftOffset = (delta: number) => {
-      offsetRef.current += delta;
-      normalizeOffset();
-      apply();
-    };
-
-    const shouldAutoRun = () => {
-      if (dragActiveRef.current || interactionPaused) return false;
-      if (ignoreHoverPause) return true;
-      return !hoverPaused;
-    };
-
-    const cancelResumeAuto = () => {
-      window.clearTimeout(resumeTimer);
-      resumeTimer = undefined;
-    };
-
-    const resumeAuto = () => {
-      cancelResumeAuto();
-      interactionPaused = false;
-      ignoreHoverPause = true;
-      pausedSince = 0;
-      lastTime = 0;
-    };
-
-    const scheduleResumeAuto = () => {
-      cancelResumeAuto();
-      resumeTimer = window.setTimeout(() => {
-        resumeTimer = undefined;
-        resumeAuto();
-      }, AUTO_RESUME_DELAY_MS);
-    };
-
-    const pauseInteraction = () => {
-      cancelResumeAuto();
-      interactionPaused = true;
-      lastTime = 0;
-      if (pausedSince === 0) pausedSince = Date.now();
-    };
-
-    const shouldIgnorePointerDown = (pointerType: string) => {
-      if (pointerType === "mouse" && isCoarse) return true;
-      if (
-        pointerType === "mouse" &&
-        Date.now() - lastTouchEndTime < SYNTHETIC_MOUSE_GRACE_MS
-      ) {
-        return true;
-      }
-      return false;
-    };
+  useEffect(() => {
+    const viewport = viewportRef.current;
+    if (!viewport) return;
 
     const stopTracking = () => {
-      document.removeEventListener("pointermove", onDocumentPointerMove);
-      document.removeEventListener("pointerup", onDocumentPointerUp);
-      document.removeEventListener("pointercancel", onDocumentPointerUp);
-      document.removeEventListener("touchmove", onDocumentTouchMove);
-      document.removeEventListener("touchend", onDocumentTouchEnd);
-      document.removeEventListener("touchcancel", onDocumentTouchEnd);
+      document.removeEventListener("pointermove", onPointerMove);
+      document.removeEventListener("pointerup", onPointerUp);
+      document.removeEventListener("pointercancel", onPointerUp);
     };
 
-    const finishInteraction = () => {
-      window.clearTimeout(interactionSafetyTimer);
+    const finishDrag = (openLink = false) => {
+      viewport.classList.remove("is-dragging");
+      isDraggingRef.current = false;
+      activePointerIdRef.current = null;
+      setTransitionEnabled(true);
       stopTracking();
-      dragActiveRef.current = false;
-      activePointerId = null;
 
-      if (Math.abs(velocityRef.current) < MIN_VELOCITY) {
-        velocityRef.current = 0;
-        scheduleResumeAuto();
+      if (openLink && pressedLinkRef.current && !blockedNavigationRef.current) {
+        window.location.assign(pressedLinkRef.current.href);
       }
+      pressedLinkRef.current = null;
     };
 
-    const getDragThreshold = () =>
-      pressedLink ? LINK_DRAG_THRESHOLD : DRAG_THRESHOLD;
-
-    const beginDrag = (x: number) => {
-      dragActiveRef.current = true;
-      didDragThisGesture = true;
-      lastXRef.current = x;
-      ignoreHoverPause = false;
-      pauseInteraction();
-    };
-
-    const beginInteraction = (id: number, x: number, y: number) => {
+    const releaseVerticalScroll = () => {
+      blockedNavigationRef.current = true;
+      didSwipeRef.current = true;
+      viewport.classList.remove("is-dragging");
+      isDraggingRef.current = false;
+      activePointerIdRef.current = null;
+      setTransitionEnabled(true);
+      setDragOffset(0);
       stopTracking();
-      activePointerId = id;
-      dragActiveRef.current = false;
-      didDragThisGesture = false;
-      startXRef.current = x;
-      startYRef.current = y;
-      lastXRef.current = x;
-      velocityRef.current = 0;
-      ignoreHoverPause = false;
-      pauseInteraction();
-
-      window.clearTimeout(interactionSafetyTimer);
-      interactionSafetyTimer = window.setTimeout(() => {
-        if (activePointerId === id) {
-          finishInteraction();
-        }
-      }, 4000);
+      pressedLinkRef.current = null;
+      setIsInteracting(false);
     };
 
-    const moveInteraction = (
-      x: number,
-      y: number,
-      preventDefault?: () => void,
-    ) => {
-      if (activePointerId === null) return;
-
-      if (!dragActiveRef.current) {
-        const totalX = Math.abs(x - startXRef.current);
-        const totalY = Math.abs(y - startYRef.current);
-        const threshold = getDragThreshold();
-        if (totalX > threshold && totalX > totalY) {
-          beginDrag(x);
-        } else {
-          return;
-        }
-      }
-
-      preventDefault?.();
-      const dx = x - lastXRef.current;
-      shiftOffset(-dx);
-      velocityRef.current = -dx;
-      lastXRef.current = x;
-    };
-
-    const endInteraction = (id: number, isTouchEnd = false) => {
-      if (activePointerId === null || activePointerId !== id) return;
-
-      if (isTouchEnd) {
-        lastTouchEndTime = Date.now();
-      }
-
-      const linkToOpen = pressedLink;
-      const shouldOpenLink = Boolean(linkToOpen) && !didDragThisGesture;
-
-      finishInteraction();
-
-      if (shouldOpenLink && linkToOpen) {
-        linkToOpen.click();
-      }
-
-      pressedLink = null;
-    };
-
-    const onDocumentPointerMove = (event: PointerEvent) => {
-      if (activePointerId === null || event.pointerId !== activePointerId) {
+    const onPointerMove = (event: PointerEvent) => {
+      if (
+        activePointerIdRef.current === null ||
+        event.pointerId !== activePointerIdRef.current
+      ) {
         return;
       }
-      moveInteraction(event.clientX, event.clientY, () =>
-        event.preventDefault(),
-      );
+
+      const dx = event.clientX - dragStartXRef.current;
+      const dy = event.clientY - dragStartYRef.current;
+
+      if (
+        !isDraggingRef.current &&
+        Math.abs(dy) > TAP_THRESHOLD &&
+        Math.abs(dy) > Math.abs(dx)
+      ) {
+        releaseVerticalScroll();
+        return;
+      }
+
+      if (!isDraggingRef.current) {
+        const threshold = pressedLinkRef.current
+          ? SWIPE_LINK_THRESHOLD
+          : SWIPE_THRESHOLD / 3;
+        if (Math.abs(dx) < threshold || Math.abs(dx) < Math.abs(dy)) {
+          return;
+        }
+        isDraggingRef.current = true;
+        viewport.classList.add("is-dragging");
+      }
+
+      event.preventDefault();
+      didSwipeRef.current = true;
+      setDragOffset(-dx);
     };
 
-    const onDocumentPointerUp = (event: PointerEvent) => {
-      endInteraction(event.pointerId, event.pointerType === "touch");
-    };
+    const onPointerUp = (event: PointerEvent) => {
+      if (
+        activePointerIdRef.current === null ||
+        event.pointerId !== activePointerIdRef.current
+      ) {
+        return;
+      }
 
-    const onDocumentTouchMove = (event: TouchEvent) => {
-      if (activePointerId === null) return;
-      const touch = Array.from(event.changedTouches).find(
-        (t) => t.identifier === activePointerId,
-      );
-      if (!touch) return;
-      moveInteraction(touch.clientX, touch.clientY, () =>
-        event.preventDefault(),
-      );
-    };
+      const dx = event.clientX - dragStartXRef.current;
+      const dy = event.clientY - dragStartYRef.current;
+      const offset = -dx;
+      const isTap = Math.hypot(dx, dy) < TAP_THRESHOLD;
+      const shouldOpenLink =
+        Boolean(pressedLinkRef.current) &&
+        isTap &&
+        !didSwipeRef.current &&
+        !blockedNavigationRef.current;
 
-    const onDocumentTouchEnd = (event: TouchEvent) => {
-      if (activePointerId === null) return;
-      const touch = Array.from(event.changedTouches).find(
-        (t) => t.identifier === activePointerId,
-      );
-      if (!touch) return;
-      endInteraction(touch.identifier, true);
+      if (isDraggingRef.current) {
+        if (offset > SWIPE_THRESHOLD) {
+          navigateBy(1);
+        } else if (offset < -SWIPE_THRESHOLD) {
+          navigateBy(-1);
+        } else {
+          setDragOffset(0);
+        }
+        finishDrag(false);
+      } else if (
+        isTap &&
+        !didSwipeRef.current &&
+        !blockedNavigationRef.current
+      ) {
+        const rect = viewport.getBoundingClientRect();
+        const tapX = event.clientX - rect.left;
+        const leftZone = rect.width * 0.33;
+        const rightZone = rect.width * 0.67;
+
+        if (pressedLinkRef.current?.classList.contains("is-active")) {
+          finishDrag(true);
+        } else if (pressedLinkRef.current) {
+          const linkRect = pressedLinkRef.current.getBoundingClientRect();
+          const linkCenter = linkRect.left + linkRect.width / 2 - rect.left;
+          navigateBy(linkCenter < rect.width / 2 ? -1 : 1);
+          finishDrag(false);
+        } else if (tapX < leftZone) {
+          navigateBy(-1);
+          finishDrag(false);
+        } else if (tapX > rightZone) {
+          navigateBy(1);
+          finishDrag(false);
+        } else {
+          finishDrag(false);
+        }
+      } else {
+        finishDrag(shouldOpenLink);
+      }
+
+      const hadManualSwipe = didSwipeRef.current;
+      setIsInteracting(false);
+
+      if (hadManualSwipe || Date.now() - lastSwipeTimeRef.current < 50) {
+        setPaused(false);
+        setAutoKey((key) => key + 1);
+      }
     };
 
     const onPointerDown = (event: PointerEvent) => {
-      if (usingTouchHandlers) return;
-      if (event.pointerType === "mouse" && event.button !== 0) return;
-      if (shouldIgnorePointerDown(event.pointerType)) return;
+      if (event.button !== 0) return;
 
       const target = event.target;
-      pressedLink =
+      pressedLinkRef.current =
         target instanceof Element
           ? target.closest<HTMLAnchorElement>("a.projects-carousel-card")
           : null;
 
-      // Let the browser handle normal mouse clicks on project links.
-      if (pressedLink && event.pointerType === "mouse") {
-        return;
-      }
+      activePointerIdRef.current = event.pointerId;
+      dragStartXRef.current = event.clientX;
+      dragStartYRef.current = event.clientY;
+      didSwipeRef.current = false;
+      blockedNavigationRef.current = false;
+      isDraggingRef.current = false;
+      setTransitionEnabled(false);
+      setIsInteracting(true);
 
-      beginInteraction(event.pointerId, event.clientX, event.clientY);
-
-      document.addEventListener("pointermove", onDocumentPointerMove, {
+      document.addEventListener("pointermove", onPointerMove, {
         passive: false,
       });
-      document.addEventListener("pointerup", onDocumentPointerUp);
-      document.addEventListener("pointercancel", onDocumentPointerUp);
+      document.addEventListener("pointerup", onPointerUp);
+      document.addEventListener("pointercancel", onPointerUp);
     };
 
-    const onTouchStart = (event: TouchEvent) => {
-      if (!usingTouchHandlers) return;
-      if (event.touches.length !== 1) return;
-
-      const touch = event.touches[0];
-      const target = event.target;
-      pressedLink =
-        target instanceof Element
-          ? target.closest<HTMLAnchorElement>("a.projects-carousel-card")
-          : null;
-
-      beginInteraction(touch.identifier, touch.clientX, touch.clientY);
-
-      document.addEventListener("touchmove", onDocumentTouchMove, {
-        passive: false,
-      });
-      document.addEventListener("touchend", onDocumentTouchEnd);
-      document.addEventListener("touchcancel", onDocumentTouchEnd);
-    };
-
-    const tick = (time: number) => {
-      const loop = loopWidthRef.current;
-
-      if (
-        interactionPaused &&
-        !dragActiveRef.current &&
-        Math.abs(velocityRef.current) < MIN_VELOCITY &&
-        pausedSince > 0 &&
-        Date.now() - pausedSince > STALL_RECOVERY_MS
-      ) {
-        resumeAuto();
-      }
-
-      if (loop > 0 && !dragActiveRef.current) {
-        if (Math.abs(velocityRef.current) >= MIN_VELOCITY) {
-          shiftOffset(velocityRef.current);
-          velocityRef.current *= MOMENTUM_FRICTION;
-
-          if (Math.abs(velocityRef.current) < MIN_VELOCITY) {
-            velocityRef.current = 0;
-            if (interactionPaused) {
-              scheduleResumeAuto();
-            }
-          }
-
-          lastTime = 0;
-        } else if (shouldAutoRun()) {
-          if (lastTime > 0) {
-            const dt = (time - lastTime) / 1000;
-            shiftOffset(speed * dt);
-          }
-          lastTime = time;
-        } else {
-          lastTime = 0;
-        }
-      } else {
-        lastTime = 0;
-      }
-
-      if (time - lastSaveTime >= CAROUSEL_SAVE_INTERVAL_MS) {
-        saveOffset();
-        lastSaveTime = time;
-      }
-
-      rafId = requestAnimationFrame(tick);
-    };
-
-    const onMouseEnter = () => {
-      if (canHover && !ignoreHoverPause) {
-        hoverPaused = true;
-        lastTime = 0;
-      }
-    };
-
-    const onMouseLeave = () => {
-      if (canHover) {
-        hoverPaused = false;
-        lastTime = 0;
-      }
-    };
-
-    measure();
-    restoreOffset();
-    apply();
-    rafId = requestAnimationFrame(tick);
-
-    const onPageHide = () => {
-      saveOffset();
-    };
-
-    const resizeObserver = new ResizeObserver(() => {
-      measure();
-      normalizeOffset();
-      apply();
-    });
-    resizeObserver.observe(loopSet);
-
-    viewport.addEventListener("pointerdown", onPointerDown, true);
-    viewport.addEventListener("touchstart", onTouchStart, {
-      capture: true,
-      passive: false,
-    });
-    viewport.addEventListener("mouseenter", onMouseEnter);
-    viewport.addEventListener("mouseleave", onMouseLeave);
-    window.addEventListener("pagehide", onPageHide);
+    viewport.addEventListener("pointerdown", onPointerDown);
 
     return () => {
-      saveOffset();
-      cancelAnimationFrame(rafId);
-      window.clearTimeout(interactionSafetyTimer);
-      cancelResumeAuto();
       stopTracking();
-      window.removeEventListener("pagehide", onPageHide);
-      resizeObserver.disconnect();
-      viewport.removeEventListener("pointerdown", onPointerDown, true);
-      viewport.removeEventListener("touchstart", onTouchStart, true);
-      viewport.removeEventListener("mouseenter", onMouseEnter);
-      viewport.removeEventListener("mouseleave", onMouseLeave);
+      viewport.removeEventListener("pointerdown", onPointerDown);
     };
-  }, []);
+  }, [navigateBy]);
 
-  const cardClassName =
-    "projects-carousel-card flex shrink-0 flex-col justify-between rounded-2xl p-3 transition duration-300 active:brightness-125 sm:p-4 sm:hover:-translate-y-1 sm:hover:brightness-110";
+  const shouldSuppressClick = () =>
+    blockedNavigationRef.current ||
+    Date.now() - lastSwipeTimeRef.current < SWIPE_SUPPRESS_MS;
 
   return (
-    <div className="projects-carousel">
+    <div
+      className={`projects-carousel${isReady ? " is-ready" : ""}`}
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+    >
       <div className="projects-carousel-fade">
         <div ref={viewportRef} className="projects-carousel-viewport">
-          <div ref={trackRef} className="projects-carousel-track">
-            <div ref={loopSetRef} className="projects-carousel-set">
-              {projects.map((project) => (
-                <ProjectCard
-                  key={`loop-a-${project.name}`}
-                  project={project}
-                  className={cardClassName}
-                />
-              ))}
-            </div>
-            <div className="projects-carousel-set" aria-hidden="true" inert>
-              {projects.map((project) => (
-                <ProjectCard
-                  key={`loop-b-${project.name}`}
-                  project={project}
-                  className={cardClassName}
-                  interactive={false}
-                />
-              ))}
-            </div>
+          <div
+            ref={trackRef}
+            className="projects-carousel-track projects-carousel-track--spotlight"
+            style={{
+              transform: `translate3d(-${translateX + dragOffset}px, 0, 0)`,
+              transitionDuration: transitionEnabled ? `${SLIDE_MS}ms` : "0ms",
+            }}
+          >
+            {loopProjects.map((project, index) => (
+              <ProjectCard
+                key={`loop-${index}-${project.name}`}
+                project={project}
+                isActive={index % projectCount === logicalIndex}
+                shouldSuppressClick={shouldSuppressClick}
+                cardRef={(node) => {
+                  cardRefs.current[index] = node;
+                }}
+              />
+            ))}
           </div>
         </div>
       </div>

@@ -1,8 +1,12 @@
+import { SectionLine } from "@/components/section-line";
+
 export function Footer() {
   return (
-    <footer className="safe-bottom border-t border-white/10 px-5 pt-8 sm:px-8">
-      <div className="mx-auto flex max-w-6xl flex-col items-center gap-5 text-center text-sm text-muted sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:text-left">
-        <div className="flex flex-col items-center gap-1 sm:flex-row sm:gap-5">
+    <>
+      <SectionLine label="footer beg" />
+      <footer className="safe-bottom px-5 pt-8">
+      <div className="mx-auto flex max-w-full flex-col items-center gap-5 text-center text-sm text-muted">
+        <div className="flex flex-col items-center gap-1">
           <a
             href="mailto:hussein.mufti01@gmail.com"
             className="flex min-h-11 items-center break-all transition-colors hover:text-white"
@@ -18,10 +22,11 @@ export function Footer() {
             GitHub
           </a>
         </div>
-        <p className="text-xs sm:text-sm">
+        <p className="text-xs">
           © {new Date().getFullYear()} Nordlys Solutions
         </p>
       </div>
     </footer>
+    </>
   );
 }

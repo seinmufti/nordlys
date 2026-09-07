@@ -8,7 +8,7 @@ const fieldClass =
   "mt-2 w-full min-h-12 rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-base text-white outline-none transition focus:border-white/20 focus:ring-2 focus:ring-aurora-cyan/40";
 
 const labelClass =
-  "block text-[10px] tracking-[0.2em] text-zinc-400 uppercase sm:text-[11px]";
+  "block text-[10px] tracking-[0.2em] text-zinc-400 uppercase";
 
 export function ContactForm() {
   const [sent, setSent] = useState(false);
@@ -27,8 +27,8 @@ export function ContactForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
-      <div className="grid gap-4 sm:grid-cols-2 sm:gap-5">
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="grid gap-4">
         <label className={labelClass}>
           Name
           <input
@@ -60,12 +60,12 @@ export function ContactForm() {
           name="message"
           rows={4}
           enterKeyHint="send"
-          className={`${fieldClass} resize-y sm:min-h-36`}
+          className={`${fieldClass} min-h-36 resize-y`}
         />
       </label>
       <button
         type="submit"
-        className="inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-linear-to-r from-aurora-green via-aurora-blue to-aurora-purple px-5 text-sm font-medium text-black transition active:brightness-125 sm:w-auto sm:hover:brightness-110"
+        className="inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-linear-to-r from-aurora-green via-aurora-blue to-aurora-purple px-5 text-sm font-medium text-black transition active:brightness-125"
       >
         {sent ? "Opening your email app" : "Send message"}
       </button>
