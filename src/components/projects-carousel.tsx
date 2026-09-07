@@ -8,10 +8,13 @@ import {
   useMemo,
   useRef,
   useState,
+  type CSSProperties,
 } from "react";
-import { projects, type Project, getProjectLink } from "@/data/projects";
+import { projects, type Project, type ProjectDevice, getProjectLink } from "@/data/projects";
+import { getScrollContainer } from "@/lib/in-app-scroll";
 
-const ADVANCE_MS = 3000;
+const ADVANCE_MS = 6000;
+const AUTO_ADVANCE_ENABLED = true;
 const SLIDE_MS = 350;
 const SWIPE_THRESHOLD = 48;
 const SWIPE_LINK_THRESHOLD = 12;
@@ -19,14 +22,93 @@ const TAP_THRESHOLD = 10;
 const SWIPE_SUPPRESS_MS = 300;
 const LOOP_COPIES = 3;
 
+function MobileDeviceIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden="true"
+    >
+      <rect x="7" y="2.5" width="10" height="19" rx="2" />
+      <path d="M11 18.5h2" />
+    </svg>
+  );
+}
+
+function DesktopDeviceIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden="true"
+    >
+      <rect x="3" y="4" width="18" height="12" rx="1.5" />
+      <path d="M8 20h8" />
+      <path d="M12 16v4" />
+    </svg>
+  );
+}
+
+function ProjectCardDevices({ devices }: { devices?: ProjectDevice[] }) {
+  if (!devices?.length) {
+    return <div className="projects-carousel-card-devices" aria-hidden="true" />;
+  }
+
+  const visibleDevices = devices.filter(
+    (device): device is ProjectDevice =>
+      device === "mobile" || device === "desktop",
+  );
+
+  return (
+    <div
+      className={`projects-carousel-card-devices${
+        visibleDevices.length === 1 ? " projects-carousel-card-devices--single" : ""
+      }`}
+    >
+      {visibleDevices.map((device) => (
+        <div key={device} className="projects-carousel-card-device-slot">
+          {device === "mobile" ? (
+            <MobileDeviceIcon className="projects-carousel-card-device-icon" />
+          ) : (
+            <DesktopDeviceIcon className="projects-carousel-card-device-icon" />
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ProjectCardDescription({ project }: { project: Project }) {
+  const summary = project.description?.paragraphs[0];
+  if (!summary) return null;
+
+  return (
+    <div className="projects-carousel-card-description">
+      <p className="projects-carousel-card-description-paragraph">{summary}</p>
+    </div>
+  );
+}
+
 function ProjectCardContent({ project }: { project: Project }) {
   return (
     <>
-      <span className="text-[10px] tracking-[0.2em] text-muted uppercase sm:text-xs sm:tracking-[0.22em]">
-        {project.tag}
-      </span>
-
-      <div className="projects-carousel-card-image flex min-h-0 flex-1 flex-col">
+      <div
+        className={`projects-carousel-card-image w-full shrink-0${
+          project.image ? "" : " projects-carousel-card-image--placeholder"
+        }`}
+      >
         {project.image ? (
           <Image
             src={project.image}
@@ -34,19 +116,32 @@ function ProjectCardContent({ project }: { project: Project }) {
             fill
             sizes="(max-width: 640px) 45vw, 30vw"
             unoptimized
-            className="object-contain object-center"
+            className="object-cover object-center"
             draggable={false}
           />
-        ) : null}
+        ) : (
+          <span
+            className="projects-carousel-card-image-skeleton"
+            aria-hidden="true"
+          />
+        )}
       </div>
 
-      <div>
-        <p className="text-base font-medium tracking-tight text-white sm:text-xl">
-          {project.name}
-        </p>
-        <p className="mt-0.5 text-[11px] leading-snug text-muted sm:text-xs">
-          {project.tagline}
-        </p>
+      <div className="projects-carousel-card-meta shrink-0">
+        <div className="projects-carousel-card-title-row">
+          <p className="projects-carousel-card-name">{project.name}</p>
+          <div className="projects-carousel-card-title-side">
+            <span className="projects-carousel-card-category">{project.tag}</span>
+            <ProjectCardDevices devices={project.devices} />
+          </div>
+        </div>
+        <div className="projects-carousel-card-body">
+          {project.description ? (
+            <ProjectCardDescription project={project} />
+          ) : (
+            <p className="projects-carousel-card-tagline">{project.tagline}</p>
+          )}
+        </div>
       </div>
     </>
   );
@@ -57,11 +152,17 @@ function ProjectCard({
   isActive,
   cardRef,
   shouldSuppressClick,
+  showAutoProgress,
+  autoProgressPaused,
+  autoProgressKey,
 }: {
   project: Project;
   isActive: boolean;
   cardRef: (node: HTMLAnchorElement | null) => void;
   shouldSuppressClick: () => boolean;
+  showAutoProgress?: boolean;
+  autoProgressPaused?: boolean;
+  autoProgressKey?: string;
 }) {
   return (
     <a
@@ -78,11 +179,23 @@ function ProjectCard({
           window.location.assign(getProjectLink(project));
         }
       }}
-      className={`projects-carousel-card flex shrink-0 flex-col justify-between rounded-2xl p-3 sm:p-4${
+      className={`projects-carousel-card flex shrink-0 flex-col justify-start rounded-2xl${
         isActive ? " is-active" : ""
       }`}
+      style={{ "--project-accent": project.accent } as CSSProperties}
     >
       <ProjectCardContent project={project} />
+      {showAutoProgress ? (
+        <div className="projects-carousel-card-progress" aria-hidden="true">
+          <div
+            key={autoProgressKey}
+            className={`projects-carousel-card-progress-fill${
+              autoProgressPaused ? " is-paused" : ""
+            }`}
+            style={{ animationDuration: `${ADVANCE_MS}ms` }}
+          />
+        </div>
+      ) : null}
     </a>
   );
 }
@@ -104,6 +217,7 @@ export function ProjectsCarousel() {
   const [paused, setPaused] = useState(false);
   const [isInteracting, setIsInteracting] = useState(false);
   const [autoKey, setAutoKey] = useState(0);
+  const [reducedMotion, setReducedMotion] = useState(false);
   const viewportRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
   const cardRefs = useRef<(HTMLAnchorElement | null)[]>([]);
@@ -118,6 +232,16 @@ export function ProjectsCarousel() {
   const trackIndexRef = useRef(trackIndex);
   const isSnappingRef = useRef(false);
   const hasPositionedRef = useRef(false);
+  const pendingScrollUnlockRef = useRef(false);
+
+  const lockCarouselScroll = useCallback(() => {
+    getScrollContainer()?.classList.add("is-carousel-scroll-locked");
+  }, []);
+
+  const unlockCarouselScroll = useCallback(() => {
+    pendingScrollUnlockRef.current = false;
+    getScrollContainer()?.classList.remove("is-carousel-scroll-locked");
+  }, []);
 
   const logicalIndex =
     ((trackIndex % projectCount) + projectCount) % projectCount;
@@ -125,6 +249,14 @@ export function ProjectsCarousel() {
   useEffect(() => {
     trackIndexRef.current = trackIndex;
   }, [trackIndex]);
+
+  useEffect(() => {
+    const media = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const update = () => setReducedMotion(media.matches);
+    update();
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
+  }, []);
 
   const centerOnIndex = useCallback((index: number) => {
     const viewport = viewportRef.current;
@@ -155,14 +287,19 @@ export function ProjectsCarousel() {
     [projectCount],
   );
 
-  const navigateBy = useCallback((delta: number) => {
-    setDragOffset(0);
-    setTransitionEnabled(true);
-    setTrackIndex((current) => current + delta);
-    lastSwipeTimeRef.current = Date.now();
-    setPaused(false);
-    setAutoKey((key) => key + 1);
-  }, []);
+  const navigateBy = useCallback(
+    (delta: number) => {
+      setDragOffset(0);
+      setTransitionEnabled(true);
+      setTrackIndex((current) => current + delta);
+      lastSwipeTimeRef.current = Date.now();
+      setPaused(false);
+      setAutoKey((key) => key + 1);
+      lockCarouselScroll();
+      pendingScrollUnlockRef.current = true;
+    },
+    [lockCarouselScroll],
+  );
 
   useLayoutEffect(() => {
     centerOnIndex(trackIndex);
@@ -204,6 +341,10 @@ export function ProjectsCarousel() {
     const onTransitionEnd = (event: TransitionEvent) => {
       if (event.target !== track || event.propertyName !== "transform") return;
 
+      if (pendingScrollUnlockRef.current) {
+        unlockCarouselScroll();
+      }
+
       const index = trackIndexRef.current;
       const normalized = normalizeTrackIndex(index);
       if (normalized === index) return;
@@ -216,16 +357,17 @@ export function ProjectsCarousel() {
 
     track.addEventListener("transitionend", onTransitionEnd);
     return () => track.removeEventListener("transitionend", onTransitionEnd);
-  }, [normalizeTrackIndex]);
+  }, [normalizeTrackIndex, unlockCarouselScroll]);
 
   useEffect(() => {
     const reduced = window.matchMedia(
       "(prefers-reduced-motion: reduce)",
     ).matches;
-    if (reduced || paused || isInteracting || !isReady) return;
+    if (reduced || !AUTO_ADVANCE_ENABLED || paused || isInteracting || !isReady) return;
 
     const timer = window.setInterval(() => {
       setTrackIndex((current) => current + 1);
+      setAutoKey((key) => key + 1);
     }, ADVANCE_MS);
 
     return () => window.clearInterval(timer);
@@ -243,10 +385,17 @@ export function ProjectsCarousel() {
 
     const finishDrag = (openLink = false) => {
       viewport.classList.remove("is-dragging");
+      const wasDragging = isDraggingRef.current;
       isDraggingRef.current = false;
       activePointerIdRef.current = null;
       setTransitionEnabled(true);
       stopTracking();
+
+      if (wasDragging) {
+        pendingScrollUnlockRef.current = true;
+      } else if (!pendingScrollUnlockRef.current) {
+        unlockCarouselScroll();
+      }
 
       if (openLink && pressedLinkRef.current && !blockedNavigationRef.current) {
         window.location.assign(pressedLinkRef.current.href);
@@ -265,6 +414,7 @@ export function ProjectsCarousel() {
       stopTracking();
       pressedLinkRef.current = null;
       setIsInteracting(false);
+      unlockCarouselScroll();
     };
 
     const onPointerMove = (event: PointerEvent) => {
@@ -295,6 +445,7 @@ export function ProjectsCarousel() {
           return;
         }
         isDraggingRef.current = true;
+        lockCarouselScroll();
         viewport.classList.add("is-dragging");
       }
 
@@ -399,42 +550,77 @@ export function ProjectsCarousel() {
     return () => {
       stopTracking();
       viewport.removeEventListener("pointerdown", onPointerDown);
+      unlockCarouselScroll();
     };
-  }, [navigateBy]);
+  }, [navigateBy, lockCarouselScroll, unlockCarouselScroll]);
 
   const shouldSuppressClick = () =>
     blockedNavigationRef.current ||
     Date.now() - lastSwipeTimeRef.current < SWIPE_SUPPRESS_MS;
 
+  const activeProject = projects[logicalIndex];
+  const activeDescriptionTail =
+    activeProject.description?.paragraphs.slice(1) ?? [];
+  const activeDescriptionItems = activeDescriptionTail.flatMap((block) =>
+    block.split(/\n\n+/).filter(Boolean),
+  );
+
+  const autoProgressKey = `${logicalIndex}-${autoKey}`;
+  const autoProgressPaused = paused || isInteracting;
+  const showAutoProgress =
+    AUTO_ADVANCE_ENABLED && isReady && !reducedMotion;
+
   return (
-    <div
-      className={`projects-carousel${isReady ? " is-ready" : ""}`}
-      onMouseEnter={() => setPaused(true)}
-      onMouseLeave={() => setPaused(false)}
-    >
-      <div className="projects-carousel-fade">
-        <div ref={viewportRef} className="projects-carousel-viewport">
-          <div
-            ref={trackRef}
-            className="projects-carousel-track projects-carousel-track--spotlight"
-            style={{
-              transform: `translate3d(-${translateX + dragOffset}px, 0, 0)`,
-              transitionDuration: transitionEnabled ? `${SLIDE_MS}ms` : "0ms",
-            }}
-          >
-            {loopProjects.map((project, index) => (
-              <ProjectCard
-                key={`loop-${index}-${project.name}`}
-                project={project}
-                isActive={index % projectCount === logicalIndex}
-                shouldSuppressClick={shouldSuppressClick}
-                cardRef={(node) => {
-                  cardRefs.current[index] = node;
-                }}
-              />
-            ))}
+    <div className="projects-carousel-shell">
+      <div
+        className={`projects-carousel${isReady ? " is-ready" : ""}`}
+        onMouseEnter={() => setPaused(true)}
+        onMouseLeave={() => setPaused(false)}
+      >
+        <div className="projects-carousel-fade">
+          <div ref={viewportRef} className="projects-carousel-viewport">
+            <div
+              ref={trackRef}
+              className="projects-carousel-track projects-carousel-track--spotlight"
+              style={{
+                transform: `translate3d(-${translateX + dragOffset}px, 0, 0)`,
+                transitionDuration: transitionEnabled ? `${SLIDE_MS}ms` : "0ms",
+              }}
+            >
+              {loopProjects.map((project, index) => (
+                <ProjectCard
+                  key={`loop-${index}-${project.name}`}
+                  project={project}
+                  isActive={index % projectCount === logicalIndex}
+                  shouldSuppressClick={shouldSuppressClick}
+                  showAutoProgress={
+                    showAutoProgress && index % projectCount === logicalIndex
+                  }
+                  autoProgressPaused={autoProgressPaused}
+                  autoProgressKey={autoProgressKey}
+                  cardRef={(node) => {
+                    cardRefs.current[index] = node;
+                  }}
+                />
+              ))}
+            </div>
           </div>
         </div>
+      </div>
+
+      <div
+        className="projects-description-card"
+        style={{ "--project-accent": activeProject.accent } as CSSProperties}
+      >
+        {activeDescriptionItems.length > 0 ? (
+          <ul className="projects-description-card-list">
+            {activeDescriptionItems.map((item) => (
+              <li key={item} className="projects-description-card-list-item">
+                {item}
+              </li>
+            ))}
+          </ul>
+        ) : null}
       </div>
     </div>
   );

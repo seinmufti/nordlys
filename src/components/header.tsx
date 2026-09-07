@@ -4,7 +4,7 @@ export function Header() {
   // The bar's background matches the logo PNG's black plate so its edges vanish.
   return (
     <header className="sticky top-0 z-30 w-full min-w-0 border-b border-white/10 bg-background">
-      <div className="safe-top flex items-center justify-between gap-3 px-4 pb-3">
+      <div className="safe-top flex items-center justify-between px-4 pb-3">
         <a
           href="#top"
           className="flex shrink-0 items-center"

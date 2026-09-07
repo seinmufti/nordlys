@@ -1,5 +1,8 @@
 "use client";
 
+import { scrollToId } from "@/lib/in-app-scroll";
+import { SectionStarfield } from "@/components/section-starfield";
+
 function DownArrow({ className }: { className?: string }) {
   return (
     <svg
@@ -18,10 +21,17 @@ function DownArrow({ className }: { className?: string }) {
   );
 }
 
+function AboutStarfield() {
+  return (
+    <SectionStarfield
+      idPrefix="about"
+      className="about-section-stars"
+    />
+  );
+}
+
 function scrollToProjects() {
-  document
-    .getElementById("projects")
-    ?.scrollIntoView({ behavior: "smooth", block: "start" });
+  scrollToId("projects");
 }
 
 export function About() {
@@ -33,7 +43,8 @@ export function About() {
       <div className="about-section-inner flex min-h-0 flex-1 flex-col px-5">
         <div className="about-section-copy text-center">
           <div className="about-section-main flex min-h-0 flex-1 flex-col justify-center">
-            <div className="about-section-body mx-auto max-w-2xl text-center">
+            <AboutStarfield />
+            <div className="about-section-body relative z-10 mx-auto max-w-2xl text-center">
               <p>
                 Custom Invoice makers,
                 <br />

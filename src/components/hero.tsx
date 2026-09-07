@@ -42,8 +42,10 @@ export function Hero() {
         <SectionLine label="about end" />
       </section>
 
-      <section className="landing-screen landing-screen--projects relative isolate flex w-full min-w-0 flex-col items-center bg-black">
-        <SectionLine label="projects beg" className="section-line-spaced" />
+      <section
+        id="projects"
+        className="landing-screen landing-screen--projects relative isolate flex w-full min-w-0 scroll-mt-24 flex-col items-center bg-black"
+      >
         <Projects />
         <SectionLine label="projects end" />
       </section>

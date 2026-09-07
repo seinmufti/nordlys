@@ -27,7 +27,7 @@ export function ContactForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-3">
       <div className="grid gap-4">
         <label className={labelClass}>
           Name
@@ -58,9 +58,9 @@ export function ContactForm() {
         <textarea
           required
           name="message"
-          rows={4}
+          rows={3}
           enterKeyHint="send"
-          className={`${fieldClass} min-h-36 resize-y`}
+          className={`${fieldClass} min-h-28 resize-y`}
         />
       </label>
       <button
