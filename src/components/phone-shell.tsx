@@ -8,8 +8,9 @@ export function PhoneShell({ children }: { children: ReactNode }) {
     const container = document.querySelector(".phone-screen");
     if (!container) return;
 
-    const handleClick = (event: MouseEvent) => {
-      const link = (event.target as Element).closest('a[href^="#"]');
+    const handleClick = (event: Event) => {
+      if (!(event.target instanceof Element)) return;
+      const link = event.target.closest('a[href^="#"]');
       if (!(link instanceof HTMLAnchorElement)) return;
 
       const hash = link.getAttribute("href");
