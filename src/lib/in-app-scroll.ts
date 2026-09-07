@@ -21,15 +21,19 @@ export function scrollToHash(
   const target = document.querySelector(hash);
   if (!(target instanceof HTMLElement)) return;
 
+  const headerOffset = getHeaderOffset();
   const containerRect = container.getBoundingClientRect();
   const targetRect = target.getBoundingClientRect();
   const top =
     container.scrollTop +
     targetRect.top -
     containerRect.top -
-    getHeaderOffset();
+    headerOffset;
 
-  container.scrollTo({ top: Math.max(0, top), behavior });
+  container.scrollTo({
+    top: Math.max(0, top),
+    behavior,
+  });
 }
 
 export function scrollToId(
@@ -37,4 +41,8 @@ export function scrollToId(
   behavior: ScrollBehavior = "smooth",
 ): void {
   scrollToHash(`#${id}`, behavior);
+
+  if (typeof history !== "undefined") {
+    history.pushState(null, "", `#${id}`);
+  }
 }

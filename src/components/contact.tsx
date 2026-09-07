@@ -12,16 +12,12 @@ export function Contact() {
         <div className="contact-section-inner">
           <div className="contact-section-header">
             <SectionLine label="contact beg" />
-            <p className="contact-section-eyebrow">Contact</p>
-            <h2 className="section-heading contact-section-title font-serif tracking-tight text-white">
-              Tell us the problem
+            <h2 className="section-heading contact-section-title font-sans font-medium tracking-tight text-white">
+              Let's get to know the problem
             </h2>
-            <p className="contact-section-lead">
-              Drop a note and we will get back before the next late night.
-            </p>
           </div>
           <div className="contact-section-form">
-            <div className="aurora-border contact-section-form-card rounded-2xl p-4">
+            <div className="contact-section-form-card rounded-2xl p-4">
               <ContactForm />
             </div>
           </div>

@@ -17,6 +17,7 @@ const ADVANCE_MS = 6000;
 const AUTO_ADVANCE_ENABLED = true;
 const SLIDE_MS = 350;
 const SWIPE_THRESHOLD = 48;
+const SWIPE_THRESHOLD_COARSE = 36;
 const SWIPE_LINK_THRESHOLD = 12;
 const TAP_THRESHOLD = 10;
 const SWIPE_SUPPRESS_MS = 300;
@@ -233,15 +234,30 @@ export function ProjectsCarousel() {
   const isSnappingRef = useRef(false);
   const hasPositionedRef = useRef(false);
   const pendingScrollUnlockRef = useRef(false);
+  const scrollUnlockTimerRef = useRef<number | null>(null);
+
+  const clearScrollUnlockTimer = useCallback(() => {
+    if (scrollUnlockTimerRef.current !== null) {
+      window.clearTimeout(scrollUnlockTimerRef.current);
+      scrollUnlockTimerRef.current = null;
+    }
+  }, []);
 
   const lockCarouselScroll = useCallback(() => {
     getScrollContainer()?.classList.add("is-carousel-scroll-locked");
-  }, []);
+    clearScrollUnlockTimer();
+    scrollUnlockTimerRef.current = window.setTimeout(() => {
+      pendingScrollUnlockRef.current = false;
+      getScrollContainer()?.classList.remove("is-carousel-scroll-locked");
+      scrollUnlockTimerRef.current = null;
+    }, SLIDE_MS + 500);
+  }, [clearScrollUnlockTimer]);
 
   const unlockCarouselScroll = useCallback(() => {
     pendingScrollUnlockRef.current = false;
+    clearScrollUnlockTimer();
     getScrollContainer()?.classList.remove("is-carousel-scroll-locked");
-  }, []);
+  }, [clearScrollUnlockTimer]);
 
   const logicalIndex =
     ((trackIndex % projectCount) + projectCount) % projectCount;
@@ -383,6 +399,19 @@ export function ProjectsCarousel() {
       document.removeEventListener("pointercancel", onPointerUp);
     };
 
+    const releasePointer = () => {
+      const pointerId = activePointerIdRef.current;
+      if (pointerId === null) return;
+
+      try {
+        if (viewport.hasPointerCapture(pointerId)) {
+          viewport.releasePointerCapture(pointerId);
+        }
+      } catch {
+        // Pointer may already be released on touch devices.
+      }
+    };
+
     const finishDrag = (openLink = false) => {
       viewport.classList.remove("is-dragging");
       const wasDragging = isDraggingRef.current;
@@ -390,6 +419,7 @@ export function ProjectsCarousel() {
       activePointerIdRef.current = null;
       setTransitionEnabled(true);
       stopTracking();
+      releasePointer();
 
       if (wasDragging) {
         pendingScrollUnlockRef.current = true;
@@ -412,10 +442,16 @@ export function ProjectsCarousel() {
       setTransitionEnabled(true);
       setDragOffset(0);
       stopTracking();
+      releasePointer();
       pressedLinkRef.current = null;
       setIsInteracting(false);
       unlockCarouselScroll();
     };
+
+    const getSwipeThreshold = () =>
+      window.matchMedia("(pointer: coarse)").matches
+        ? SWIPE_THRESHOLD_COARSE
+        : SWIPE_THRESHOLD;
 
     const onPointerMove = (event: PointerEvent) => {
       if (
@@ -473,9 +509,10 @@ export function ProjectsCarousel() {
         !blockedNavigationRef.current;
 
       if (isDraggingRef.current) {
-        if (offset > SWIPE_THRESHOLD) {
+        const swipeThreshold = getSwipeThreshold();
+        if (offset > swipeThreshold) {
           navigateBy(1);
-        } else if (offset < -SWIPE_THRESHOLD) {
+        } else if (offset < -swipeThreshold) {
           navigateBy(-1);
         } else {
           setDragOffset(0);
@@ -538,6 +575,12 @@ export function ProjectsCarousel() {
       setTransitionEnabled(false);
       setIsInteracting(true);
 
+      try {
+        viewport.setPointerCapture(event.pointerId);
+      } catch {
+        // Some browsers reject capture on certain touch targets.
+      }
+
       document.addEventListener("pointermove", onPointerMove, {
         passive: false,
       });
@@ -545,14 +588,14 @@ export function ProjectsCarousel() {
       document.addEventListener("pointercancel", onPointerUp);
     };
 
-    viewport.addEventListener("pointerdown", onPointerDown);
+    viewport.addEventListener("pointerdown", onPointerDown, { capture: true });
 
     return () => {
       stopTracking();
-      viewport.removeEventListener("pointerdown", onPointerDown);
+      viewport.removeEventListener("pointerdown", onPointerDown, { capture: true });
       unlockCarouselScroll();
     };
-  }, [navigateBy, lockCarouselScroll, unlockCarouselScroll]);
+  }, [navigateBy, lockCarouselScroll, unlockCarouselScroll, clearScrollUnlockTimer]);
 
   const shouldSuppressClick = () =>
     blockedNavigationRef.current ||

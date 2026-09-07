@@ -1,6 +1,7 @@
 import { Contact } from "@/components/contact";
 import { Header } from "@/components/header";
 import { Hero } from "@/components/hero";
+import { SectionBraid } from "@/components/section-braid";
 
 export default function Home() {
   return (
@@ -8,6 +9,7 @@ export default function Home() {
       <Header />
       <main className="w-full min-w-0">
         <Hero />
+        <SectionBraid />
         <Contact />
       </main>
     </div>
