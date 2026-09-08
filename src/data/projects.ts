@@ -101,6 +101,7 @@ export const projects: Project[] = [
   },
   {
     name: "Dr. Kani",
+    slug: "drkani",
     tag: "Dentist landing page",
     tagline: "Renowned dental care",
     description: {
@@ -112,7 +113,7 @@ export const projects: Project[] = [
       ],
     },
     accent: "#52525b",
-    href: "https://drkani.vercel.app",
+    href: "https://drkani-seven.vercel.app/",
     image: drKaniImage,
     devices: ["mobile"],
   },
