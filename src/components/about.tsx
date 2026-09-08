@@ -26,6 +26,7 @@ function AboutStarfield() {
     <SectionStarfield
       idPrefix="about"
       className="about-section-stars"
+      density="dense"
     />
   );
 }
@@ -43,18 +44,22 @@ export function About() {
       <div className="about-section-inner flex min-h-0 flex-1 flex-col px-5">
         <div className="about-section-copy text-center">
           <div className="about-section-main flex min-h-0 flex-1 flex-col justify-center">
-            <AboutStarfield />
-            <div className="about-section-body relative z-10 mx-auto max-w-2xl text-center">
-              <p>
-                Custom Invoice makers,
-                <br />
-                Engineering plan designers,
-                <br />
-                scheduling apps..
-                <span className="about-section-tagline about-section-tagline-inline whitespace-nowrap text-white">
-                  You name it, we create it.
-                </span>
-              </p>
+            <div className="about-section-body mx-auto max-w-2xl text-center">
+              <div className="about-section-services-wrap">
+                <AboutStarfield />
+                <p className="about-section-services">
+                  <span className="about-section-service">
+                    Custom Invoice makers,
+                  </span>{" "}
+                  <span className="about-section-service">
+                    Engineering plan designers,
+                  </span>{" "}
+                  <span className="about-section-service">scheduling apps..</span>
+                  <span className="about-section-tagline about-section-tagline-inline whitespace-nowrap text-white">
+                    You name it, we create it.
+                  </span>
+                </p>
+              </div>
             </div>
           </div>
 

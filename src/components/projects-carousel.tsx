@@ -91,6 +91,8 @@ function ProjectCardDevices({ devices }: { devices?: ProjectDevice[] }) {
   );
 }
 
+const DESCRIPTION_SLOT_COUNT = 6;
+
 function ProjectCardDescription({ project }: { project: Project }) {
   const summary = project.description?.paragraphs[0];
   if (!summary) return null;
@@ -185,18 +187,23 @@ function ProjectCard({
       }`}
       style={{ "--project-accent": project.accent } as CSSProperties}
     >
-      <ProjectCardContent project={project} />
-      {showAutoProgress ? (
-        <div className="projects-carousel-card-progress" aria-hidden="true">
-          <div
-            key={autoProgressKey}
-            className={`projects-carousel-card-progress-fill${
-              autoProgressPaused ? " is-paused" : ""
-            }`}
-            style={{ animationDuration: `${ADVANCE_MS}ms` }}
-          />
+      <div className="projects-carousel-card-surface flex min-h-0 flex-1 flex-col justify-start overflow-hidden rounded-2xl">
+        <ProjectCardContent project={project} />
+        <div
+          className="projects-carousel-card-progress"
+          aria-hidden={showAutoProgress ? undefined : true}
+        >
+          {showAutoProgress ? (
+            <div
+              key={autoProgressKey}
+              className={`projects-carousel-card-progress-fill${
+                autoProgressPaused ? " is-paused" : ""
+              }`}
+              style={{ animationDuration: `${ADVANCE_MS}ms` }}
+            />
+          ) : null}
         </div>
-      ) : null}
+      </div>
     </a>
   );
 }
@@ -235,6 +242,8 @@ export function ProjectsCarousel() {
   const hasPositionedRef = useRef(false);
   const pendingScrollUnlockRef = useRef(false);
   const scrollUnlockTimerRef = useRef<number | null>(null);
+  const normalizeFallbackTimerRef = useRef<number | null>(null);
+  const lockedScrollTopRef = useRef(0);
 
   const clearScrollUnlockTimer = useCallback(() => {
     if (scrollUnlockTimerRef.current !== null) {
@@ -243,21 +252,53 @@ export function ProjectsCarousel() {
     }
   }, []);
 
+  const preventLockedScroll = useCallback((event: Event) => {
+    event.preventDefault();
+  }, []);
+
+  const pinLockedScroll = useCallback(() => {
+    const container = getScrollContainer();
+    if (!container?.classList.contains("is-carousel-scroll-locked")) return;
+
+    if (container.scrollTop !== lockedScrollTopRef.current) {
+      container.scrollTop = lockedScrollTopRef.current;
+    }
+  }, []);
+
+  const unlockCarouselScroll = useCallback(() => {
+    const container = getScrollContainer();
+    pendingScrollUnlockRef.current = false;
+    clearScrollUnlockTimer();
+
+    if (!container) return;
+
+    container.classList.remove("is-carousel-scroll-locked");
+    container.removeEventListener("scroll", pinLockedScroll);
+    container.removeEventListener("wheel", preventLockedScroll);
+    container.removeEventListener("touchmove", preventLockedScroll);
+  }, [clearScrollUnlockTimer, pinLockedScroll, preventLockedScroll]);
+
   const lockCarouselScroll = useCallback(() => {
-    getScrollContainer()?.classList.add("is-carousel-scroll-locked");
+    const container = getScrollContainer();
+    if (!container) return;
+
+    lockedScrollTopRef.current = container.scrollTop;
+    container.classList.add("is-carousel-scroll-locked");
+    container.addEventListener("scroll", pinLockedScroll, { passive: true });
+    container.addEventListener("wheel", preventLockedScroll, { passive: false });
+    container.addEventListener("touchmove", preventLockedScroll, { passive: false });
+
     clearScrollUnlockTimer();
     scrollUnlockTimerRef.current = window.setTimeout(() => {
       pendingScrollUnlockRef.current = false;
-      getScrollContainer()?.classList.remove("is-carousel-scroll-locked");
-      scrollUnlockTimerRef.current = null;
+      unlockCarouselScroll();
     }, SLIDE_MS + 500);
-  }, [clearScrollUnlockTimer]);
-
-  const unlockCarouselScroll = useCallback(() => {
-    pendingScrollUnlockRef.current = false;
-    clearScrollUnlockTimer();
-    getScrollContainer()?.classList.remove("is-carousel-scroll-locked");
-  }, [clearScrollUnlockTimer]);
+  }, [
+    clearScrollUnlockTimer,
+    pinLockedScroll,
+    preventLockedScroll,
+    unlockCarouselScroll,
+  ]);
 
   const logicalIndex =
     ((trackIndex % projectCount) + projectCount) % projectCount;
@@ -303,6 +344,33 @@ export function ProjectsCarousel() {
     [projectCount],
   );
 
+  const clearNormalizeFallback = useCallback(() => {
+    if (normalizeFallbackTimerRef.current !== null) {
+      window.clearTimeout(normalizeFallbackTimerRef.current);
+      normalizeFallbackTimerRef.current = null;
+    }
+  }, []);
+
+  const applyNormalizeIfNeeded = useCallback(() => {
+    const index = trackIndexRef.current;
+    const normalized = normalizeTrackIndex(index);
+    if (normalized === index) return false;
+
+    isSnappingRef.current = true;
+    trackRef.current?.classList.add("is-snapping");
+    setTransitionEnabled(false);
+    setTrackIndex(normalized);
+    return true;
+  }, [normalizeTrackIndex]);
+
+  const scheduleNormalizeFallback = useCallback(() => {
+    clearNormalizeFallback();
+    normalizeFallbackTimerRef.current = window.setTimeout(() => {
+      normalizeFallbackTimerRef.current = null;
+      applyNormalizeIfNeeded();
+    }, SLIDE_MS + 80);
+  }, [clearNormalizeFallback, applyNormalizeIfNeeded]);
+
   const navigateBy = useCallback(
     (delta: number) => {
       setDragOffset(0);
@@ -313,11 +381,20 @@ export function ProjectsCarousel() {
       setAutoKey((key) => key + 1);
       lockCarouselScroll();
       pendingScrollUnlockRef.current = true;
+      scheduleNormalizeFallback();
     },
-    [lockCarouselScroll],
+    [lockCarouselScroll, scheduleNormalizeFallback],
   );
 
   useLayoutEffect(() => {
+    if (trackIndex >= loopProjects.length) {
+      isSnappingRef.current = true;
+      trackRef.current?.classList.add("is-snapping");
+      setTransitionEnabled(false);
+      setTrackIndex(normalizeTrackIndex(trackIndex));
+      return;
+    }
+
     centerOnIndex(trackIndex);
     setDragOffset(0);
 
@@ -336,7 +413,7 @@ export function ProjectsCarousel() {
         setTransitionEnabled(true);
       });
     }
-  }, [trackIndex, centerOnIndex]);
+  }, [trackIndex, centerOnIndex, loopProjects.length, normalizeTrackIndex]);
 
   useEffect(() => {
     const viewport = viewportRef.current;
@@ -361,19 +438,16 @@ export function ProjectsCarousel() {
         unlockCarouselScroll();
       }
 
-      const index = trackIndexRef.current;
-      const normalized = normalizeTrackIndex(index);
-      if (normalized === index) return;
-
-      isSnappingRef.current = true;
-      track.classList.add("is-snapping");
-      setTransitionEnabled(false);
-      setTrackIndex(normalized);
+      clearNormalizeFallback();
+      applyNormalizeIfNeeded();
     };
 
     track.addEventListener("transitionend", onTransitionEnd);
-    return () => track.removeEventListener("transitionend", onTransitionEnd);
-  }, [normalizeTrackIndex, unlockCarouselScroll]);
+    return () => {
+      track.removeEventListener("transitionend", onTransitionEnd);
+      clearNormalizeFallback();
+    };
+  }, [applyNormalizeIfNeeded, clearNormalizeFallback, unlockCarouselScroll]);
 
   useEffect(() => {
     const reduced = window.matchMedia(
@@ -382,12 +456,11 @@ export function ProjectsCarousel() {
     if (reduced || !AUTO_ADVANCE_ENABLED || paused || isInteracting || !isReady) return;
 
     const timer = window.setInterval(() => {
-      setTrackIndex((current) => current + 1);
-      setAutoKey((key) => key + 1);
+      navigateBy(1);
     }, ADVANCE_MS);
 
     return () => window.clearInterval(timer);
-  }, [paused, autoKey, isInteracting, isReady]);
+  }, [paused, autoKey, isInteracting, isReady, navigateBy]);
 
   useEffect(() => {
     const viewport = viewportRef.current;
@@ -607,6 +680,10 @@ export function ProjectsCarousel() {
   const activeDescriptionItems = activeDescriptionTail.flatMap((block) =>
     block.split(/\n\n+/).filter(Boolean),
   );
+  const descriptionSlots = Array.from(
+    { length: DESCRIPTION_SLOT_COUNT },
+    (_, index) => activeDescriptionItems[index] ?? null,
+  );
 
   const autoProgressKey = `${logicalIndex}-${autoKey}`;
   const autoProgressPaused = paused || isInteracting;
@@ -617,8 +694,14 @@ export function ProjectsCarousel() {
     <div className="projects-carousel-shell">
       <div
         className={`projects-carousel${isReady ? " is-ready" : ""}`}
-        onMouseEnter={() => setPaused(true)}
-        onMouseLeave={() => setPaused(false)}
+        onMouseEnter={() => {
+          if (window.matchMedia("(pointer: fine)").matches) return;
+          setPaused(true);
+        }}
+        onMouseLeave={() => {
+          if (window.matchMedia("(pointer: fine)").matches) return;
+          setPaused(false);
+        }}
       >
         <div className="projects-carousel-fade">
           <div ref={viewportRef} className="projects-carousel-viewport">
@@ -634,10 +717,10 @@ export function ProjectsCarousel() {
                 <ProjectCard
                   key={`loop-${index}-${project.name}`}
                   project={project}
-                  isActive={index % projectCount === logicalIndex}
+                  isActive={index === trackIndex}
                   shouldSuppressClick={shouldSuppressClick}
                   showAutoProgress={
-                    showAutoProgress && index % projectCount === logicalIndex
+                    showAutoProgress && index === trackIndex
                   }
                   autoProgressPaused={autoProgressPaused}
                   autoProgressKey={autoProgressKey}
@@ -655,15 +738,19 @@ export function ProjectsCarousel() {
         className="projects-description-card"
         style={{ "--project-accent": activeProject.accent } as CSSProperties}
       >
-        {activeDescriptionItems.length > 0 ? (
-          <ul className="projects-description-card-list">
-            {activeDescriptionItems.map((item) => (
-              <li key={item} className="projects-description-card-list-item">
-                {item}
-              </li>
-            ))}
-          </ul>
-        ) : null}
+        <ul className="projects-description-card-list">
+          {descriptionSlots.map((item, index) => (
+            <li
+              key={`${logicalIndex}-${index}`}
+              className={`projects-description-card-list-item${
+                item ? "" : " is-placeholder"
+              }`}
+              aria-hidden={item ? undefined : true}
+            >
+              {item ?? "\u00a0"}
+            </li>
+          ))}
+        </ul>
       </div>
     </div>
   );

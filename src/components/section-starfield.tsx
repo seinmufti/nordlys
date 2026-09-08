@@ -87,7 +87,7 @@ export function SectionStarfield({
     <svg
       className={className}
       viewBox="0 0 100 100"
-      preserveAspectRatio="none"
+      preserveAspectRatio="xMidYMid slice"
       aria-hidden="true"
     >
       <defs>

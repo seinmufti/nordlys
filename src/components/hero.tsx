@@ -24,16 +24,18 @@ export function Hero() {
             />
           </div>
 
-          <h1 className="hero-brand flex flex-col items-center justify-center text-center font-sans font-black uppercase">
-            <span className="hero-brand-name block text-white">Nordlys</span>
-            <span className="hero-brand-solutions mt-1 block text-white">
-              Solutions
-            </span>
-          </h1>
+          <div className="hero-banner-headline">
+            <h1 className="hero-brand flex flex-col items-center justify-center text-center font-sans font-black uppercase">
+              <span className="hero-brand-name block text-white">Nordlys</span>
+              <span className="hero-brand-solutions mt-1 block text-white">
+                Solutions
+              </span>
+            </h1>
 
-          <p className="hero-motto relative z-10 w-full shrink-0 whitespace-nowrap text-center font-serif italic text-white">
-            - One more problem before sleep -
-          </p>
+            <p className="hero-motto relative z-10 w-full shrink-0 whitespace-nowrap text-center font-serif italic text-white">
+              - One more problem before sleep -
+            </p>
+          </div>
         </div>
 
         <SectionLine label="hero end" />

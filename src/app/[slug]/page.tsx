@@ -2,14 +2,14 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import {
   findProjectBySlug,
-  getProjectSlug,
+  getProjectPathSegment,
   projects,
 } from "@/data/projects";
 
 type PageProps = { params: Promise<{ slug: string }> };
 
 export function generateStaticParams() {
-  return projects.map((project) => ({ slug: getProjectSlug(project.name) }));
+  return projects.map((project) => ({ slug: getProjectPathSegment(project) }));
 }
 
 export async function generateMetadata({

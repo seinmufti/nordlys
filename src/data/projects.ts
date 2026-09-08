@@ -8,6 +8,8 @@ export type ProjectDevice = "mobile" | "desktop";
 
 export type Project = {
   name: string;
+  /** URL path segment, e.g. "wasl". Defaults from name when omitted. */
+  slug?: string;
   tag: string;
   tagline: string;
   description?: {
@@ -27,8 +29,12 @@ export function getProjectSlug(name: string): string {
   return name.replace(/\s+/g, "");
 }
 
+export function getProjectPathSegment(project: Project): string {
+  return project.slug ?? getProjectSlug(project.name);
+}
+
 export function getProjectPath(project: Project): string {
-  return `/${getProjectSlug(project.name)}`;
+  return `/${getProjectPathSegment(project)}`;
 }
 
 export function getProjectLink(project: Project): string {
@@ -38,7 +44,7 @@ export function getProjectLink(project: Project): string {
 export function findProjectBySlug(slug: string): Project | undefined {
   return projects.find(
     (project) =>
-      getProjectSlug(project.name).toLowerCase() === slug.toLowerCase(),
+      getProjectPathSegment(project).toLowerCase() === slug.toLowerCase(),
   );
 }
 
@@ -77,6 +83,7 @@ export const projects: Project[] = [
   },
   {
     name: "Wasl",
+    slug: "wasl",
     tag: "Finances",
     tagline: "Invoices on this device",
     description: {
@@ -88,7 +95,7 @@ export const projects: Project[] = [
       ],
     },
     accent: "#2563eb",
-    href: "https://wasl-seinmuftis-projects.vercel.app",
+    href: "https://wasl-pi.vercel.app/",
     image: waslImage,
     devices: ["mobile"],
   },
