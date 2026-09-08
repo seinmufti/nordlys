@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import {
   findProjectBySlug,
+  getHostedProjectIframeAllow,
   getProjectPathSegment,
   projects,
 } from "@/data/projects";
@@ -35,7 +36,7 @@ export default async function HostedProjectPage({ params }: PageProps) {
       src={project.href}
       title={project.name}
       className="fixed inset-0 h-full w-full border-0 bg-black"
-      allow="fullscreen"
+      allow={getHostedProjectIframeAllow(project.href)}
     />
   );
 }

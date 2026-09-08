@@ -41,6 +41,19 @@ export function getProjectLink(project: Project): string {
   return getProjectPath(project);
 }
 
+/** Permissions required for export/share inside cross-origin hosted project iframes. */
+export function getHostedProjectIframeAllow(href: string): string {
+  const permissions = ["fullscreen", "web-share", "clipboard-read"];
+
+  try {
+    permissions.push(`clipboard-write ${new URL(href).origin}`);
+  } catch {
+    permissions.push("clipboard-write");
+  }
+
+  return permissions.join("; ");
+}
+
 export function findProjectBySlug(slug: string): Project | undefined {
   return projects.find(
     (project) =>
