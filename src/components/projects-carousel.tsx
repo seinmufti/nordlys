@@ -11,7 +11,10 @@ import {
   type CSSProperties,
 } from "react";
 import { projects, type Project, type ProjectDevice, getProjectLink } from "@/data/projects";
-import { getScrollContainer } from "@/lib/in-app-scroll";
+import {
+  getScrollContainer,
+  markProjectsReturnPoint,
+} from "@/lib/in-app-scroll";
 
 const ADVANCE_MS = 6000;
 const AUTO_ADVANCE_ENABLED = true;
@@ -177,6 +180,7 @@ function ProjectCard({
           event.preventDefault();
           return;
         }
+        markProjectsReturnPoint();
         if (window.matchMedia("(pointer: coarse)").matches) {
           event.preventDefault();
           window.location.assign(getProjectLink(project));
@@ -501,6 +505,7 @@ export function ProjectsCarousel() {
       }
 
       if (openLink && pressedLinkRef.current && !blockedNavigationRef.current) {
+        markProjectsReturnPoint();
         window.location.assign(pressedLinkRef.current.href);
       }
       pressedLinkRef.current = null;

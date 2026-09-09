@@ -21,22 +21,27 @@ export function PhoneShell({ children }: { children: ReactNode }) {
       history.pushState(null, "", hash);
     };
 
-    const handleHashChange = () => {
+    const syncHashScroll = () => {
       scrollToHash(window.location.hash || "#top", "auto");
     };
 
+    const handlePageShow = (event: PageTransitionEvent) => {
+      if (!event.persisted) return;
+      syncHashScroll();
+    };
+
     container.addEventListener("click", handleClick);
-    window.addEventListener("hashchange", handleHashChange);
+    window.addEventListener("hashchange", syncHashScroll);
+    window.addEventListener("pageshow", handlePageShow);
 
     if (window.location.hash) {
-      requestAnimationFrame(() => {
-        scrollToHash(window.location.hash, "auto");
-      });
+      requestAnimationFrame(syncHashScroll);
     }
 
     return () => {
       container.removeEventListener("click", handleClick);
-      window.removeEventListener("hashchange", handleHashChange);
+      window.removeEventListener("hashchange", syncHashScroll);
+      window.removeEventListener("pageshow", handlePageShow);
     };
   }, []);
 

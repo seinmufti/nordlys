@@ -46,3 +46,13 @@ export function scrollToId(
     history.pushState(null, "", `#${id}`);
   }
 }
+
+/** Before opening a hosted project, anchor back navigation to the projects section. */
+export function markProjectsReturnPoint(): void {
+  if (typeof window === "undefined") return;
+
+  const { pathname } = window.location;
+  if (pathname !== "/" && pathname !== "") return;
+
+  history.replaceState(null, "", "#projects");
+}
