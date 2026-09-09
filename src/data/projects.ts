@@ -41,6 +41,16 @@ export function getProjectLink(project: Project): string {
   return getProjectPath(project);
 }
 
+/** Build iframe src for a hosted app, preserving deep-link path segments. */
+export function getHostedIframeSrc(
+  href: string,
+  pathSegments: string[] = [],
+): string {
+  const base = href.endsWith("/") ? href : `${href}/`;
+  if (pathSegments.length === 0) return base;
+  return new URL(pathSegments.join("/"), base).href;
+}
+
 /** Permissions required for export/share inside cross-origin hosted project iframes. */
 export function getHostedProjectIframeAllow(href: string): string {
   const permissions = ["fullscreen", "web-share", "clipboard-read"];

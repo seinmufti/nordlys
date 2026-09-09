@@ -18,6 +18,15 @@ const nextConfig: NextConfig = {
           },
         ],
       },
+      {
+        source: "/:slug/:path*",
+        headers: [
+          {
+            key: "Permissions-Policy",
+            value: "fullscreen=(self), web-share=(self), clipboard-write=(self), clipboard-read=(self)",
+          },
+        ],
+      },
     ];
   },
 };
