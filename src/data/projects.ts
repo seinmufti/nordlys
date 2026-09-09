@@ -54,11 +54,36 @@ export function getHostedProjectIframeAllow(href: string): string {
   return permissions.join("; ");
 }
 
+export type HostedApp = {
+  slug: string;
+  name: string;
+  tagline: string;
+  href: string;
+};
+
+/** URL-only hosted apps (not shown in the projects carousel). */
+export const hostedApps: HostedApp[] = [
+  {
+    slug: "pr-logger",
+    name: "PR Logger",
+    tagline: "Pull request logging",
+    href: "https://pr-logger-railway.vercel.app/",
+  },
+];
+
 export function findProjectBySlug(slug: string): Project | undefined {
   return projects.find(
     (project) =>
       getProjectPathSegment(project).toLowerCase() === slug.toLowerCase(),
   );
+}
+
+export function findHostedAppBySlug(slug: string): HostedApp | undefined {
+  return hostedApps.find((app) => app.slug.toLowerCase() === slug.toLowerCase());
+}
+
+export function findHostedRoute(slug: string): Project | HostedApp | undefined {
+  return findProjectBySlug(slug) ?? findHostedAppBySlug(slug);
 }
 
 export const projects: Project[] = [
