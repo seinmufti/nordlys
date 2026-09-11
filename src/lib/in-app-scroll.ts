@@ -1,39 +1,74 @@
-export function getScrollContainer(): HTMLElement | null {
-  return document.querySelector(".phone-screen");
+function isVerticallyScrollable(el: HTMLElement | null): el is HTMLElement {
+  return !!el && el.scrollHeight - el.clientHeight > 1;
 }
 
-function getHeaderOffset(): number {
+export function getScrollContainer(): HTMLElement {
+  const doc = document.documentElement;
+  const body = document.body;
+  const scrolling = (document.scrollingElement ?? doc) as HTMLElement;
+
+  // Desktop locks .phone-device to the viewport. Combined with overflow-x:hidden
+  // on body (which computes overflow-y:auto), body becomes the real scroller
+  // while document.scrollingElement (html) cannot move.
+  if (isVerticallyScrollable(scrolling)) return scrolling;
+  if (isVerticallyScrollable(body)) return body;
+  if (isVerticallyScrollable(doc)) return doc;
+  return scrolling;
+}
+
+function getScrollPaddingTop(): number {
+  const padding = parseFloat(
+    getComputedStyle(document.documentElement).scrollPaddingTop,
+  );
+  if (Number.isFinite(padding) && padding > 0) return padding;
+
   return document.querySelector("header")?.getBoundingClientRect().height ?? 0;
+}
+
+function resolveScrollBehavior(
+  behavior: ScrollBehavior = "smooth",
+): ScrollBehavior {
+  if (behavior === "auto") return "auto";
+  return window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    ? "auto"
+    : behavior;
+}
+
+export function getScrollTop(): number {
+  return getScrollContainer().scrollTop;
+}
+
+export function setScrollTop(
+  top: number,
+  behavior: ScrollBehavior = "auto",
+): void {
+  getScrollContainer().scrollTo({
+    top: Math.max(0, top),
+    behavior: resolveScrollBehavior(behavior),
+  });
 }
 
 export function scrollToHash(
   hash: string,
   behavior: ScrollBehavior = "smooth",
 ): void {
-  const container = getScrollContainer();
-  if (!container) return;
+  const resolvedBehavior = resolveScrollBehavior(behavior);
 
   if (hash === "#top" || hash === "" || hash === "#") {
-    container.scrollTo({ top: 0, behavior });
+    setScrollTop(0, resolvedBehavior);
     return;
   }
 
   const target = document.querySelector(hash);
   if (!(target instanceof HTMLElement)) return;
 
-  const headerOffset = getHeaderOffset();
-  const containerRect = container.getBoundingClientRect();
-  const targetRect = target.getBoundingClientRect();
+  const container = getScrollContainer();
   const top =
-    container.scrollTop +
-    targetRect.top -
-    containerRect.top -
-    headerOffset;
+    target.getBoundingClientRect().top +
+    container.scrollTop -
+    getScrollPaddingTop();
 
-  container.scrollTo({
-    top: Math.max(0, top),
-    behavior,
-  });
+  setScrollTop(top, resolvedBehavior);
 }
 
 export function scrollToId(

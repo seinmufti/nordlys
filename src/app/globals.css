@@ -17,9 +17,11 @@
   --screen-height: 100svh;
   --screen-height: 100dvh;
   --hero-height-share: 37.8%;
-  --intro-available-height: calc(
+  --section-height: calc(
     var(--screen-height) - var(--header-height) - env(safe-area-inset-bottom, 0px)
   );
+  --section-braid-height: clamp(2.75rem, 5vh, 3.5rem);
+  --intro-available-height: var(--section-height);
   --intro-divider-space: calc(3px + 0.75rem);
   --hero-block-height: calc(var(--intro-available-height) * 0.378);
   --about-block-height: calc(
@@ -54,7 +56,9 @@ body {
 body {
   font-family: var(--font-sans), system-ui, sans-serif;
   min-height: 100%;
-  overflow: hidden;
+  /* clip keeps horizontal overflow off without turning body into a scroller
+     (overflow-x: hidden computes overflow-y to auto). */
+  overflow-x: clip;
   overflow-anchor: none;
   -webkit-tap-highlight-color: transparent;
   text-size-adjust: 100%;
@@ -66,7 +70,11 @@ body {
 }
 
 html {
-  scroll-behavior: smooth;
+  overflow-x: clip;
+  overflow-y: auto;
+  scroll-behavior: auto;
+  scroll-padding-top: var(--header-height);
+  -webkit-overflow-scrolling: touch;
 }
 
 /* Fluid type: brand dominates; motto stays secondary. */
@@ -385,9 +393,9 @@ html {
 }
 
 .landing-screen--intro {
-  height: var(--intro-available-height);
-  max-height: var(--intro-available-height);
-  min-height: var(--intro-available-height);
+  height: var(--section-height);
+  max-height: var(--section-height);
+  min-height: var(--section-height);
   overflow: hidden;
 }
 
@@ -481,15 +489,15 @@ html {
     animation: none;
   }
 
-  .phone-screen {
+  html {
     scroll-behavior: auto;
   }
 }
 
 .landing-screen--projects {
-  height: var(--intro-available-height);
-  max-height: var(--intro-available-height);
-  min-height: var(--intro-available-height);
+  height: var(--section-height);
+  max-height: var(--section-height);
+  min-height: var(--section-height);
   overflow: hidden;
   --projects-card-image-size: 17rem;
   --projects-card-meta-height: 9.25rem;
@@ -547,6 +555,13 @@ html {
   min-height: var(--projects-desc-block-height);
   height: var(--projects-desc-block-height);
   max-height: var(--projects-desc-block-height);
+  overflow: hidden;
+}
+
+@media (min-width: 768px) {
+  .landing-screen--projects .projects-description-card-list-item:first-child {
+    display: none;
+  }
 }
 
 .projects-carousel-shell {
@@ -556,6 +571,10 @@ html {
   flex: 0 0 auto;
   flex-direction: column;
   align-items: center;
+}
+
+.projects-carousel-shell--placeholder {
+  min-height: var(--projects-card-stack-height);
 }
 
 .landing-screen--projects .projects-carousel-fade {
@@ -674,10 +693,11 @@ html {
 
 .section-braid {
   position: relative;
-  z-index: 2;
+  z-index: 5;
   width: 100%;
+  height: var(--section-braid-height);
   flex-shrink: 0;
-  margin-top: -0.5rem;
+  margin-top: calc(-1 * var(--section-braid-height));
   background: black;
   pointer-events: none;
 }
@@ -685,7 +705,7 @@ html {
 .section-braid-svg {
   display: block;
   width: 100%;
-  height: clamp(2.75rem, 5vh, 3.5rem);
+  height: var(--section-braid-height);
   animation: section-braid-sway 16s ease-in-out infinite;
 }
 
@@ -732,13 +752,49 @@ html {
 
 @media (max-width: 767px) {
   .landing-screen--projects {
-    display: flex;
-    flex-direction: column;
+    --projects-card-image-size: min(17rem, 72vw);
+    --projects-card-meta-height: 4.75rem;
   }
 
   .landing-screen--projects .projects-section-layout {
-    flex: 1 1 auto;
+    width: 100%;
+    height: 100%;
     min-height: 0;
+    flex: 1 1 auto;
+    overflow: hidden;
+    padding-block: clamp(1rem, 2.5vh, 1.5rem);
+  }
+
+  .landing-screen--projects .projects-section-cards {
+    display: flex;
+    width: 100%;
+    min-height: 0;
+    flex: 1 1 auto;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .landing-screen--projects .projects-carousel-shell {
+    width: 100%;
+    max-width: 100%;
+    min-height: 0;
+    flex: 0 0 auto;
+    gap: clamp(0.75rem, 2vh, 1.25rem);
+  }
+
+  .landing-screen--projects .projects-carousel,
+  .landing-screen--projects .projects-carousel-fade,
+  .landing-screen--projects .projects-carousel-viewport {
+    width: 100%;
+    max-width: 100%;
+    flex: 0 0 var(--projects-card-stack-height);
+    min-height: var(--projects-card-stack-height);
+    height: var(--projects-card-stack-height);
+    max-height: var(--projects-card-stack-height);
+  }
+
+  .landing-screen--projects .projects-carousel-viewport {
+    overflow: hidden;
     justify-content: flex-start;
   }
 
@@ -746,16 +802,54 @@ html {
     width: var(--projects-card-image-size);
   }
 
+  .landing-screen--projects .projects-carousel-card-body {
+    display: none;
+  }
+
   .landing-screen--projects .projects-description-card {
-    width: var(--projects-card-image-size);
-    padding-inline: 1rem;
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+    min-height: 0;
+    max-height: none;
+    flex: 1 1 auto;
+    align-self: stretch;
+    margin-inline: 0;
+    padding-inline: clamp(1rem, 4vw, 1.5rem);
+    overflow-x: hidden;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .landing-screen--projects .projects-description-card-list {
+    height: auto;
+    min-height: 0;
+    max-height: none;
+  }
+
+  .landing-screen--projects .projects-description-card-list-item:first-child {
+    display: list-item;
+  }
+
+  .landing-screen--projects .projects-description-card-list-item {
+    height: auto;
+    min-height: 0;
+    max-height: none;
+    overflow: visible;
+    text-overflow: unset;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .landing-screen--projects .projects-description-card-list-item + .projects-description-card-list-item {
+    margin-top: 0.35rem;
   }
 }
 
 .landing-screen--contact {
-  height: var(--intro-available-height);
-  max-height: var(--intro-available-height);
-  min-height: var(--intro-available-height);
+  height: var(--section-height);
+  max-height: var(--section-height);
+  min-height: var(--section-height);
   overflow: hidden;
 }
 
@@ -763,7 +857,7 @@ html {
   display: flex;
   width: 100%;
   min-height: 0;
-  flex: 0 0 90%;
+  flex: 0 0 70%;
   flex-direction: column;
   box-sizing: border-box;
   padding-inline: 1.25rem;
@@ -828,6 +922,10 @@ html {
 
 .landing-screen--contact .contact-section-form-card form {
   width: 100%;
+}
+
+.contact-form-placeholder {
+  min-height: 14.5rem;
 }
 
 .contact-field {
@@ -926,7 +1024,7 @@ html {
   display: flex;
   width: 100%;
   min-height: 0;
-  flex: 0 0 10%;
+  flex: 0 0 30%;
   flex-direction: column;
   box-sizing: border-box;
   padding-inline: 1.25rem;
@@ -1008,6 +1106,42 @@ html {
   color: #e4405f;
 }
 
+@media (max-width: 767px) {
+  .landing-screen--contact .contact-section-panel {
+    flex: 1 1 auto;
+    justify-content: center;
+    padding-top: 0.75rem;
+  }
+
+  .landing-screen--contact .contact-section-inner {
+    flex: 0 1 auto;
+    justify-content: center;
+    gap: 1.25rem;
+  }
+
+  .landing-screen--contact .contact-section-title {
+    margin-top: 0;
+    padding-top: 0;
+    font-size: clamp(1.35rem, 6.2vw, 1.7rem);
+    line-height: 1.25;
+    text-wrap: balance;
+  }
+
+  .landing-screen--contact .contact-section-form {
+    flex: 0 0 auto;
+    padding-bottom: 0;
+  }
+
+  .landing-screen--contact .contact-section-form-card {
+    flex: 0 0 auto;
+    justify-content: flex-start;
+  }
+
+  .landing-screen--contact .contact-section-footer {
+    flex: 0 0 auto;
+  }
+}
+
 .projects-carousel {
   width: 100%;
   min-width: 0;
@@ -1051,7 +1185,7 @@ html {
   align-items: stretch;
   justify-content: flex-start;
   overflow: hidden;
-  touch-action: pan-y;
+  touch-action: pan-y pinch-zoom;
   -webkit-tap-highlight-color: transparent;
   cursor: grab;
 }
@@ -1059,10 +1193,6 @@ html {
 .projects-carousel-viewport.is-dragging {
   cursor: grabbing;
   touch-action: none;
-}
-
-.phone-screen.is-carousel-scroll-locked {
-  overscroll-behavior: none;
 }
 
 .projects-carousel-track {
@@ -1084,8 +1214,28 @@ html {
 }
 
 @media (pointer: coarse) {
+  .projects-carousel-shell,
+  .projects-carousel,
+  .projects-carousel-fade,
+  .projects-carousel-viewport {
+    touch-action: pan-y pinch-zoom;
+  }
+
   .projects-carousel-fade {
     mask-image: none;
+  }
+
+  .projects-carousel-viewport {
+    cursor: default;
+  }
+
+  .projects-carousel-card {
+    touch-action: pan-y pinch-zoom;
+  }
+
+  .projects-carousel-card:not(.is-active) .projects-carousel-card-surface {
+    opacity: 0.58;
+    filter: brightness(0.82);
   }
 }
 
@@ -1095,7 +1245,7 @@ html {
   width: min(82%, 18.5rem);
   gap: 0;
   padding: 0;
-  touch-action: manipulation;
+  touch-action: pan-y pinch-zoom;
   -webkit-tap-highlight-color: transparent;
   -webkit-user-drag: none;
   user-select: none;
@@ -1384,7 +1534,6 @@ html {
 .phone-stage {
   display: flex;
   width: 100%;
-  height: var(--screen-height);
   min-height: var(--screen-height);
   justify-content: center;
   align-items: stretch;
@@ -1410,13 +1559,8 @@ html {
   min-width: 0;
   min-height: 0;
   flex: 1 1 auto;
-  overflow-x: hidden;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  scroll-behavior: smooth;
-  scrollbar-gutter: stable;
+  overflow: visible;
   background: var(--background);
-  -webkit-overflow-scrolling: touch;
 }
 
 @media (min-width: 768px) {
@@ -1451,9 +1595,10 @@ html {
 
   .phone-screen {
     --screen-height: 100dvh;
-    --intro-available-height: calc(
+    --section-height: calc(
       var(--screen-height) - var(--header-height) - env(safe-area-inset-bottom, 0px)
     );
+    --intro-available-height: var(--section-height);
   }
 
   .phone-screen header .safe-top {
@@ -1463,9 +1608,9 @@ html {
   .phone-screen .landing-screen--intro,
   .phone-screen .landing-screen--projects,
   .phone-screen .landing-screen--contact {
-    height: var(--intro-available-height);
-    max-height: var(--intro-available-height);
-    min-height: var(--intro-available-height);
+    height: var(--section-height);
+    max-height: var(--section-height);
+    min-height: var(--section-height);
     overflow: hidden;
   }
 

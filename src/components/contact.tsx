@@ -13,7 +13,7 @@ export function Contact() {
           <div className="contact-section-header">
             <SectionLine label="contact beg" />
             <h2 className="section-heading contact-section-title font-sans font-medium tracking-tight text-white">
-              Let's get to know the problem
+              Let&apos;s get to know the problem
             </h2>
           </div>
           <div className="contact-section-form">

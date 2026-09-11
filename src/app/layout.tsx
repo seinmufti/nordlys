@@ -35,9 +35,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
+      suppressHydrationWarning
       className={`${outfit.variable} ${instrument.variable} h-full antialiased`}
     >
-      <body className="bg-background text-foreground">
+      <body suppressHydrationWarning className="bg-background text-foreground">
         <PhoneShell>{children}</PhoneShell>
       </body>
     </html>

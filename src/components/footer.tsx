@@ -48,7 +48,7 @@ export function Footer() {
           />
         </a>
 
-        <p className="contact-footer-copy">
+        <p className="contact-footer-copy" suppressHydrationWarning>
           © {new Date().getFullYear()} Nordlys Solutions
         </p>
 

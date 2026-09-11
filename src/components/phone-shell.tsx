@@ -5,9 +5,6 @@ import { scrollToHash } from "@/lib/in-app-scroll";
 
 export function PhoneShell({ children }: { children: ReactNode }) {
   useEffect(() => {
-    const container = document.querySelector(".phone-screen");
-    if (!container) return;
-
     const handleClick = (event: Event) => {
       if (!(event.target instanceof Element)) return;
       const link = event.target.closest('a[href^="#"]');
@@ -30,7 +27,7 @@ export function PhoneShell({ children }: { children: ReactNode }) {
       syncHashScroll();
     };
 
-    container.addEventListener("click", handleClick);
+    document.addEventListener("click", handleClick);
     window.addEventListener("hashchange", syncHashScroll);
     window.addEventListener("pageshow", handlePageShow);
 
@@ -39,7 +36,7 @@ export function PhoneShell({ children }: { children: ReactNode }) {
     }
 
     return () => {
-      container.removeEventListener("click", handleClick);
+      document.removeEventListener("click", handleClick);
       window.removeEventListener("hashchange", syncHashScroll);
       window.removeEventListener("pageshow", handlePageShow);
     };

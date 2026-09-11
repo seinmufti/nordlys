@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 
 const CONTACT_TO = "hussein.mufti01@gmail.com";
 
@@ -87,8 +87,17 @@ async function sendViaApi(name: string, email: string, message: string) {
 }
 
 export function ContactForm() {
+  const [mounted, setMounted] = useState(false);
   const [status, setStatus] = useState<SubmitStatus>("idle");
   const [errorMessage, setErrorMessage] = useState("");
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return <div className="contact-form-placeholder" aria-hidden="true" />;
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();

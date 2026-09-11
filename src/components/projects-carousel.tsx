@@ -11,10 +11,7 @@ import {
   type CSSProperties,
 } from "react";
 import { projects, type Project, type ProjectDevice, getProjectLink } from "@/data/projects";
-import {
-  getScrollContainer,
-  markProjectsReturnPoint,
-} from "@/lib/in-app-scroll";
+import { markProjectsReturnPoint } from "@/lib/in-app-scroll";
 
 const ADVANCE_MS = 6000;
 const AUTO_ADVANCE_ENABLED = true;
@@ -93,8 +90,6 @@ function ProjectCardDevices({ devices }: { devices?: ProjectDevice[] }) {
     </div>
   );
 }
-
-const DESCRIPTION_SLOT_COUNT = 6;
 
 function ProjectCardDescription({ project }: { project: Project }) {
   const summary = project.description?.paragraphs[0];
@@ -244,65 +239,7 @@ export function ProjectsCarousel() {
   const trackIndexRef = useRef(trackIndex);
   const isSnappingRef = useRef(false);
   const hasPositionedRef = useRef(false);
-  const pendingScrollUnlockRef = useRef(false);
-  const scrollUnlockTimerRef = useRef<number | null>(null);
   const normalizeFallbackTimerRef = useRef<number | null>(null);
-  const lockedScrollTopRef = useRef(0);
-
-  const clearScrollUnlockTimer = useCallback(() => {
-    if (scrollUnlockTimerRef.current !== null) {
-      window.clearTimeout(scrollUnlockTimerRef.current);
-      scrollUnlockTimerRef.current = null;
-    }
-  }, []);
-
-  const preventLockedScroll = useCallback((event: Event) => {
-    event.preventDefault();
-  }, []);
-
-  const pinLockedScroll = useCallback(() => {
-    const container = getScrollContainer();
-    if (!container?.classList.contains("is-carousel-scroll-locked")) return;
-
-    if (container.scrollTop !== lockedScrollTopRef.current) {
-      container.scrollTop = lockedScrollTopRef.current;
-    }
-  }, []);
-
-  const unlockCarouselScroll = useCallback(() => {
-    const container = getScrollContainer();
-    pendingScrollUnlockRef.current = false;
-    clearScrollUnlockTimer();
-
-    if (!container) return;
-
-    container.classList.remove("is-carousel-scroll-locked");
-    container.removeEventListener("scroll", pinLockedScroll);
-    container.removeEventListener("wheel", preventLockedScroll);
-    container.removeEventListener("touchmove", preventLockedScroll);
-  }, [clearScrollUnlockTimer, pinLockedScroll, preventLockedScroll]);
-
-  const lockCarouselScroll = useCallback(() => {
-    const container = getScrollContainer();
-    if (!container) return;
-
-    lockedScrollTopRef.current = container.scrollTop;
-    container.classList.add("is-carousel-scroll-locked");
-    container.addEventListener("scroll", pinLockedScroll, { passive: true });
-    container.addEventListener("wheel", preventLockedScroll, { passive: false });
-    container.addEventListener("touchmove", preventLockedScroll, { passive: false });
-
-    clearScrollUnlockTimer();
-    scrollUnlockTimerRef.current = window.setTimeout(() => {
-      pendingScrollUnlockRef.current = false;
-      unlockCarouselScroll();
-    }, SLIDE_MS + 500);
-  }, [
-    clearScrollUnlockTimer,
-    pinLockedScroll,
-    preventLockedScroll,
-    unlockCarouselScroll,
-  ]);
 
   const logicalIndex =
     ((trackIndex % projectCount) + projectCount) % projectCount;
@@ -383,11 +320,9 @@ export function ProjectsCarousel() {
       lastSwipeTimeRef.current = Date.now();
       setPaused(false);
       setAutoKey((key) => key + 1);
-      lockCarouselScroll();
-      pendingScrollUnlockRef.current = true;
       scheduleNormalizeFallback();
     },
-    [lockCarouselScroll, scheduleNormalizeFallback],
+    [scheduleNormalizeFallback],
   );
 
   useLayoutEffect(() => {
@@ -438,10 +373,6 @@ export function ProjectsCarousel() {
     const onTransitionEnd = (event: TransitionEvent) => {
       if (event.target !== track || event.propertyName !== "transform") return;
 
-      if (pendingScrollUnlockRef.current) {
-        unlockCarouselScroll();
-      }
-
       clearNormalizeFallback();
       applyNormalizeIfNeeded();
     };
@@ -451,7 +382,7 @@ export function ProjectsCarousel() {
       track.removeEventListener("transitionend", onTransitionEnd);
       clearNormalizeFallback();
     };
-  }, [applyNormalizeIfNeeded, clearNormalizeFallback, unlockCarouselScroll]);
+  }, [applyNormalizeIfNeeded, clearNormalizeFallback]);
 
   useEffect(() => {
     const reduced = window.matchMedia(
@@ -470,8 +401,12 @@ export function ProjectsCarousel() {
     const viewport = viewportRef.current;
     if (!viewport) return;
 
+    const isCoarsePointer = () =>
+      window.matchMedia("(pointer: coarse)").matches;
+
     const stopTracking = () => {
-      document.removeEventListener("pointermove", onPointerMove);
+      document.removeEventListener("pointermove", onPointerMovePassive);
+      document.removeEventListener("pointermove", onPointerMoveActive);
       document.removeEventListener("pointerup", onPointerUp);
       document.removeEventListener("pointercancel", onPointerUp);
     };
@@ -491,18 +426,11 @@ export function ProjectsCarousel() {
 
     const finishDrag = (openLink = false) => {
       viewport.classList.remove("is-dragging");
-      const wasDragging = isDraggingRef.current;
       isDraggingRef.current = false;
       activePointerIdRef.current = null;
       setTransitionEnabled(true);
       stopTracking();
       releasePointer();
-
-      if (wasDragging) {
-        pendingScrollUnlockRef.current = true;
-      } else if (!pendingScrollUnlockRef.current) {
-        unlockCarouselScroll();
-      }
 
       if (openLink && pressedLinkRef.current && !blockedNavigationRef.current) {
         markProjectsReturnPoint();
@@ -512,8 +440,6 @@ export function ProjectsCarousel() {
     };
 
     const releaseVerticalScroll = () => {
-      blockedNavigationRef.current = true;
-      didSwipeRef.current = true;
       viewport.classList.remove("is-dragging");
       isDraggingRef.current = false;
       activePointerIdRef.current = null;
@@ -523,18 +449,66 @@ export function ProjectsCarousel() {
       releasePointer();
       pressedLinkRef.current = null;
       setIsInteracting(false);
-      unlockCarouselScroll();
     };
 
     const getSwipeThreshold = () =>
-      window.matchMedia("(pointer: coarse)").matches
-        ? SWIPE_THRESHOLD_COARSE
-        : SWIPE_THRESHOLD;
+      isCoarsePointer() ? SWIPE_THRESHOLD_COARSE : SWIPE_THRESHOLD;
 
-    const onPointerMove = (event: PointerEvent) => {
+    const isVerticalIntent = (dx: number, dy: number) => {
+      if (Math.abs(dx) < 2 && Math.abs(dy) < 2) return false;
+      if (isCoarsePointer()) {
+        return Math.abs(dy) >= Math.abs(dx);
+      }
+      return Math.abs(dy) > TAP_THRESHOLD && Math.abs(dy) > Math.abs(dx);
+    };
+
+    const isHorizontalIntent = (dx: number, dy: number) => {
+      const threshold = pressedLinkRef.current
+        ? SWIPE_LINK_THRESHOLD
+        : isCoarsePointer()
+          ? 8
+          : SWIPE_THRESHOLD / 3;
+      return Math.abs(dx) >= threshold && Math.abs(dx) > Math.abs(dy);
+    };
+
+    const onPointerMoveActive = (event: PointerEvent) => {
       if (
         activePointerIdRef.current === null ||
-        event.pointerId !== activePointerIdRef.current
+        event.pointerId !== activePointerIdRef.current ||
+        !isDraggingRef.current
+      ) {
+        return;
+      }
+
+      const dx = event.clientX - dragStartXRef.current;
+      event.preventDefault();
+      didSwipeRef.current = true;
+      setDragOffset(-dx);
+    };
+
+    const startHorizontalDrag = (event: PointerEvent) => {
+      isDraggingRef.current = true;
+      viewport.classList.add("is-dragging");
+      setIsInteracting(true);
+      setTransitionEnabled(false);
+
+      try {
+        viewport.setPointerCapture(event.pointerId);
+      } catch {
+        // Some browsers reject capture on certain touch targets.
+      }
+
+      document.removeEventListener("pointermove", onPointerMovePassive);
+      document.addEventListener("pointermove", onPointerMoveActive, {
+        passive: false,
+      });
+    };
+
+    const onPointerMovePassive = (event: PointerEvent) => {
+      if (
+        activePointerIdRef.current === null ||
+        event.pointerId !== activePointerIdRef.current ||
+        isDraggingRef.current
       ) {
         return;
       }
@@ -542,30 +516,15 @@ export function ProjectsCarousel() {
       const dx = event.clientX - dragStartXRef.current;
       const dy = event.clientY - dragStartYRef.current;
 
-      if (
-        !isDraggingRef.current &&
-        Math.abs(dy) > TAP_THRESHOLD &&
-        Math.abs(dy) > Math.abs(dx)
-      ) {
+      if (isVerticalIntent(dx, dy)) {
         releaseVerticalScroll();
         return;
       }
 
-      if (!isDraggingRef.current) {
-        const threshold = pressedLinkRef.current
-          ? SWIPE_LINK_THRESHOLD
-          : SWIPE_THRESHOLD / 3;
-        if (Math.abs(dx) < threshold || Math.abs(dx) < Math.abs(dy)) {
-          return;
-        }
-        isDraggingRef.current = true;
-        lockCarouselScroll();
-        viewport.classList.add("is-dragging");
+      if (isHorizontalIntent(dx, dy)) {
+        startHorizontalDrag(event);
+        onPointerMoveActive(event);
       }
-
-      event.preventDefault();
-      didSwipeRef.current = true;
-      setDragOffset(-dx);
     };
 
     const onPointerUp = (event: PointerEvent) => {
@@ -650,45 +609,30 @@ export function ProjectsCarousel() {
       didSwipeRef.current = false;
       blockedNavigationRef.current = false;
       isDraggingRef.current = false;
-      setTransitionEnabled(false);
-      setIsInteracting(true);
 
-      try {
-        viewport.setPointerCapture(event.pointerId);
-      } catch {
-        // Some browsers reject capture on certain touch targets.
-      }
-
-      document.addEventListener("pointermove", onPointerMove, {
-        passive: false,
+      document.addEventListener("pointermove", onPointerMovePassive, {
+        passive: true,
       });
       document.addEventListener("pointerup", onPointerUp);
       document.addEventListener("pointercancel", onPointerUp);
     };
 
-    viewport.addEventListener("pointerdown", onPointerDown, { capture: true });
+    viewport.addEventListener("pointerdown", onPointerDown);
 
     return () => {
       stopTracking();
-      viewport.removeEventListener("pointerdown", onPointerDown, { capture: true });
-      unlockCarouselScroll();
+      viewport.removeEventListener("pointerdown", onPointerDown);
     };
-  }, [navigateBy, lockCarouselScroll, unlockCarouselScroll, clearScrollUnlockTimer]);
+  }, [navigateBy]);
 
   const shouldSuppressClick = () =>
     blockedNavigationRef.current ||
     Date.now() - lastSwipeTimeRef.current < SWIPE_SUPPRESS_MS;
 
   const activeProject = projects[logicalIndex];
-  const activeDescriptionTail =
-    activeProject.description?.paragraphs.slice(1) ?? [];
-  const activeDescriptionItems = activeDescriptionTail.flatMap((block) =>
-    block.split(/\n\n+/).filter(Boolean),
-  );
-  const descriptionSlots = Array.from(
-    { length: DESCRIPTION_SLOT_COUNT },
-    (_, index) => activeDescriptionItems[index] ?? null,
-  );
+  const activeDescriptionItems = (
+    activeProject.description?.paragraphs ?? []
+  ).flatMap((block) => block.split(/\n\n+/).filter(Boolean));
 
   const autoProgressKey = `${logicalIndex}-${autoKey}`;
   const autoProgressPaused = paused || isInteracting;
@@ -744,15 +688,12 @@ export function ProjectsCarousel() {
         style={{ "--project-accent": activeProject.accent } as CSSProperties}
       >
         <ul className="projects-description-card-list">
-          {descriptionSlots.map((item, index) => (
+          {activeDescriptionItems.map((item, index) => (
             <li
               key={`${logicalIndex}-${index}`}
-              className={`projects-description-card-list-item${
-                item ? "" : " is-placeholder"
-              }`}
-              aria-hidden={item ? undefined : true}
+              className="projects-description-card-list-item"
             >
-              {item ?? "\u00a0"}
+              {item}
             </li>
           ))}
         </ul>

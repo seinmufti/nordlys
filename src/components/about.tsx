@@ -31,8 +31,12 @@ function AboutStarfield() {
   );
 }
 
-function scrollToProjects() {
-  scrollToId("projects");
+function scrollToProjects(event?: React.SyntheticEvent) {
+  event?.preventDefault();
+  // Run after click/tap so the browser's focus scroll doesn't cancel this jump.
+  requestAnimationFrame(() => {
+    scrollToId("projects");
+  });
 }
 
 export function About() {
@@ -69,7 +73,9 @@ export function About() {
             </p>
             <button
               type="button"
+              onMouseDown={(event) => event.preventDefault()}
               onClick={scrollToProjects}
+              onTouchEnd={(event) => scrollToProjects(event)}
               className="about-scroll-arrow mt-[2vh] flex h-14 w-14 items-center justify-center rounded-full border border-white text-white transition-colors hover:text-aurora-cyan"
               aria-label="Scroll to projects"
             >
