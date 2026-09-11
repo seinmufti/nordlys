@@ -859,21 +859,24 @@ html {
   min-height: 0;
   flex: 0 0 70%;
   flex-direction: column;
+  justify-content: flex-start;
   box-sizing: border-box;
   padding-inline: 1.25rem;
+  padding-top: clamp(0.75rem, 2vh, 1.5rem);
 }
 
 .landing-screen--contact .contact-section-inner {
   display: flex;
   width: 100%;
   min-height: 0;
-  flex: 1 1 auto;
+  flex: 0 1 auto;
   flex-direction: column;
-  gap: 0.75rem;
+  align-items: stretch;
+  gap: clamp(1rem, 2.5vh, 1.75rem);
 }
 
 .landing-screen--contact .contact-section-header {
-  flex-shrink: 0;
+  flex: 0 0 auto;
   text-align: center;
 }
 
@@ -887,12 +890,13 @@ html {
 }
 
 .landing-screen--contact .contact-section-title {
-  margin-top: 0;
-  padding-top: 0;
+  margin: 0;
+  padding: 0;
   font-family: var(--font-sans), system-ui, sans-serif;
   font-size: clamp(1.25rem, 5vw, 1.5rem);
   font-weight: 500;
-  line-height: 1.2;
+  line-height: 1.25;
+  text-wrap: balance;
 }
 
 .landing-screen--contact .contact-section-lead {
@@ -907,7 +911,7 @@ html {
   display: flex;
   width: 100%;
   min-height: 0;
-  flex: 1 1 auto;
+  flex: 0 0 auto;
   flex-direction: column;
   padding-bottom: 0.5rem;
 }
@@ -915,9 +919,9 @@ html {
 .landing-screen--contact .contact-section-form-card {
   display: flex;
   min-height: 0;
-  flex: 1 1 auto;
+  flex: 0 0 auto;
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-start;
 }
 
 .landing-screen--contact .contact-section-form-card form {
@@ -1109,13 +1113,13 @@ html {
 @media (max-width: 767px) {
   .landing-screen--contact .contact-section-panel {
     flex: 1 1 auto;
-    justify-content: center;
+    justify-content: flex-start;
     padding-top: 0.75rem;
   }
 
   .landing-screen--contact .contact-section-inner {
     flex: 0 1 auto;
-    justify-content: center;
+    justify-content: flex-start;
     gap: 1.25rem;
   }
 
@@ -1869,9 +1873,9 @@ html {
   }
 
   .phone-screen .landing-screen--contact .contact-section-panel {
-    justify-content: center;
+    justify-content: flex-start;
     padding-inline: clamp(2rem, 5vw, 4rem);
-    padding-top: clamp(1rem, 3vh, 2rem);
+    padding-top: clamp(1.25rem, 3.5vh, 2.5rem);
   }
 
   .phone-screen .landing-screen--contact .contact-section-footer {
