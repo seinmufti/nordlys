@@ -697,7 +697,7 @@ html {
   width: 100%;
   height: var(--section-braid-height);
   flex-shrink: 0;
-  margin-top: calc(-1 * var(--section-braid-height));
+  margin: 0;
   background: black;
   pointer-events: none;
 }
@@ -887,8 +887,8 @@ html {
 }
 
 .landing-screen--contact .contact-section-title {
-  margin-top: 0.625rem;
-  padding-top: 10vh;
+  margin-top: 0;
+  padding-top: 0;
   font-family: var(--font-sans), system-ui, sans-serif;
   font-size: clamp(1.25rem, 5vw, 1.5rem);
   font-weight: 500;
@@ -1868,7 +1868,12 @@ html {
     border-left: none;
   }
 
-  .phone-screen .landing-screen--contact .contact-section-panel,
+  .phone-screen .landing-screen--contact .contact-section-panel {
+    justify-content: center;
+    padding-inline: clamp(2rem, 5vw, 4rem);
+    padding-top: clamp(1rem, 3vh, 2rem);
+  }
+
   .phone-screen .landing-screen--contact .contact-section-footer {
     padding-inline: clamp(2rem, 5vw, 4rem);
   }
@@ -1876,10 +1881,24 @@ html {
   .phone-screen .landing-screen--contact .contact-section-inner {
     width: min(100%, 36rem);
     margin-inline: auto;
+    flex: 0 1 auto;
+    gap: clamp(1rem, 2.5vh, 1.75rem);
   }
 
   .phone-screen .landing-screen--contact .contact-section-title {
     font-size: clamp(1.375rem, 2vw, 2rem);
+    line-height: 1.25;
+    text-wrap: balance;
+  }
+
+  .phone-screen .landing-screen--contact .contact-section-form {
+    flex: 0 0 auto;
+    padding-bottom: 0;
+  }
+
+  .phone-screen .landing-screen--contact .contact-section-form-card {
+    flex: 0 0 auto;
+    justify-content: flex-start;
   }
 
   .phone-screen .landing-screen--contact .contact-footer-inner {
