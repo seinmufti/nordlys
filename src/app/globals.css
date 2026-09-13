@@ -1221,7 +1221,8 @@ html {
   .projects-carousel-shell,
   .projects-carousel,
   .projects-carousel-fade,
-  .projects-carousel-viewport {
+  .projects-carousel-viewport,
+  .projects-carousel-viewport.is-dragging {
     touch-action: pan-y pinch-zoom;
   }
 

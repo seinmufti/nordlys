@@ -20,6 +20,9 @@ const SWIPE_THRESHOLD = 48;
 const SWIPE_THRESHOLD_COARSE = 36;
 const SWIPE_LINK_THRESHOLD = 12;
 const TAP_THRESHOLD = 10;
+const COARSE_HORIZONTAL_DRAG_MIN = 20;
+const COARSE_HORIZONTAL_DRAG_RATIO = 1.35;
+const COARSE_VERTICAL_RELEASE_MIN = 8;
 const SWIPE_SUPPRESS_MS = 300;
 const LOOP_COPIES = 3;
 
@@ -455,20 +458,34 @@ export function ProjectsCarousel() {
       isCoarsePointer() ? SWIPE_THRESHOLD_COARSE : SWIPE_THRESHOLD;
 
     const isVerticalIntent = (dx: number, dy: number) => {
-      if (Math.abs(dx) < 2 && Math.abs(dy) < 2) return false;
+      const absX = Math.abs(dx);
+      const absY = Math.abs(dy);
+      if (absX < 2 && absY < 2) return false;
       if (isCoarsePointer()) {
-        return Math.abs(dy) >= Math.abs(dx);
+        return (
+          absY >= COARSE_VERTICAL_RELEASE_MIN &&
+          absY >= absX
+        );
       }
-      return Math.abs(dy) > TAP_THRESHOLD && Math.abs(dy) > Math.abs(dx);
+      return absY > TAP_THRESHOLD && absY > absX;
     };
 
     const isHorizontalIntent = (dx: number, dy: number) => {
+      const absX = Math.abs(dx);
+      const absY = Math.abs(dy);
+      if (isCoarsePointer()) {
+        const threshold = pressedLinkRef.current
+          ? SWIPE_LINK_THRESHOLD
+          : COARSE_HORIZONTAL_DRAG_MIN;
+        return (
+          absX >= threshold &&
+          absX > absY * COARSE_HORIZONTAL_DRAG_RATIO
+        );
+      }
       const threshold = pressedLinkRef.current
         ? SWIPE_LINK_THRESHOLD
-        : isCoarsePointer()
-          ? 8
-          : SWIPE_THRESHOLD / 3;
-      return Math.abs(dx) >= threshold && Math.abs(dx) > Math.abs(dy);
+        : SWIPE_THRESHOLD / 3;
+      return absX >= threshold && absX > absY;
     };
 
     const onPointerMoveActive = (event: PointerEvent) => {
@@ -481,6 +498,13 @@ export function ProjectsCarousel() {
       }
 
       const dx = event.clientX - dragStartXRef.current;
+      const dy = event.clientY - dragStartYRef.current;
+
+      if (isCoarsePointer() && isVerticalIntent(dx, dy)) {
+        releaseVerticalScroll();
+        return;
+      }
+
       event.preventDefault();
       didSwipeRef.current = true;
       setDragOffset(-dx);
@@ -488,14 +512,18 @@ export function ProjectsCarousel() {
 
     const startHorizontalDrag = (event: PointerEvent) => {
       isDraggingRef.current = true;
-      viewport.classList.add("is-dragging");
+      if (!isCoarsePointer()) {
+        viewport.classList.add("is-dragging");
+      }
       setIsInteracting(true);
       setTransitionEnabled(false);
 
-      try {
-        viewport.setPointerCapture(event.pointerId);
-      } catch {
-        // Some browsers reject capture on certain touch targets.
+      if (!isCoarsePointer()) {
+        try {
+          viewport.setPointerCapture(event.pointerId);
+        } catch {
+          // Some browsers reject capture on certain touch targets.
+        }
       }
 
       document.removeEventListener("pointermove", onPointerMovePassive);
@@ -547,9 +575,15 @@ export function ProjectsCarousel() {
 
       if (isDraggingRef.current) {
         const swipeThreshold = getSwipeThreshold();
-        if (offset > swipeThreshold) {
+        const absX = Math.abs(dx);
+        const absY = Math.abs(dy);
+        const horizontalSwipeLocked =
+          !isCoarsePointer() ||
+          (absX >= swipeThreshold && absX > absY * COARSE_HORIZONTAL_DRAG_RATIO);
+
+        if (horizontalSwipeLocked && offset > swipeThreshold) {
           navigateBy(1);
-        } else if (offset < -swipeThreshold) {
+        } else if (horizontalSwipeLocked && offset < -swipeThreshold) {
           navigateBy(-1);
         } else {
           setDragOffset(0);
