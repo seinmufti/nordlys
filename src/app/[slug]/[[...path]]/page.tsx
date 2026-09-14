@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { HostedAppFrame } from "@/components/hosted-app-frame";
 import {
   findHostedRoute,
   getHostedIframeSrc,
@@ -37,10 +36,13 @@ export default async function HostedProjectPage({ params }: PageProps) {
   const route = findHostedRoute(slug);
   if (!route) notFound();
 
+  const iframeSrc = getHostedIframeSrc(route.href, path);
+
   return (
-    <HostedAppFrame
-      src={getHostedIframeSrc(route.href, path)}
+    <iframe
+      src={iframeSrc}
       title={route.name}
+      className="fixed inset-0 h-full w-full border-0 bg-black"
       allow={getHostedProjectIframeAllow(route.href)}
     />
   );

@@ -41,7 +41,7 @@ export function getProjectLink(project: Project): string {
   return getProjectPath(project);
 }
 
-/** Iframe src for a hosted app, preserving deep-link path segments. */
+/** Build iframe src for a hosted app, preserving deep-link path segments. */
 export function getHostedIframeSrc(
   href: string,
   pathSegments: string[] = [],
@@ -50,8 +50,6 @@ export function getHostedIframeSrc(
   if (pathSegments.length === 0) return base;
   return new URL(pathSegments.join("/"), base).href;
 }
-
-export const getHostedRedirectUrl = getHostedIframeSrc;
 
 /** Permissions required for export/share inside cross-origin hosted project iframes. */
 export function getHostedProjectIframeAllow(href: string): string {
@@ -75,12 +73,6 @@ export type HostedApp = {
 
 /** URL-only hosted apps (not shown in the projects carousel). */
 export const hostedApps: HostedApp[] = [
-  {
-    slug: "baitalwakalat",
-    name: "Bait Al-Wakalat",
-    tagline: "European professional cosmetics in Iraq",
-    href: "https://baitalwakalat.vercel.app/",
-  },
   {
     slug: "pr-logger",
     name: "PR Logger",
