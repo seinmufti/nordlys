@@ -41,18 +41,14 @@ export function getProjectLink(project: Project): string {
   return getProjectPath(project);
 }
 
-/** Build iframe src for a hosted app, preserving deep-link path segments. */
-export function getHostedIframeSrc(
+/** External URL for a hosted app, preserving deep-link path segments. */
+export function getHostedRedirectUrl(
   href: string,
   pathSegments: string[] = [],
 ): string {
   const base = href.endsWith("/") ? href : `${href}/`;
-  const url =
-    pathSegments.length === 0
-      ? new URL(base)
-      : new URL(pathSegments.join("/"), base);
-  url.searchParams.set("embed", "1");
-  return url.href;
+  if (pathSegments.length === 0) return base;
+  return new URL(pathSegments.join("/"), base).href;
 }
 
 /** Permissions required for export/share inside cross-origin hosted project iframes. */
