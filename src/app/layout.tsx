@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from "next";
 import { Instrument_Serif, Outfit } from "next/font/google";
-import { PhoneShell } from "@/components/phone-shell";
 import "./globals.css";
 
 const outfit = Outfit({
@@ -39,7 +38,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${outfit.variable} ${instrument.variable} h-full antialiased`}
     >
       <body suppressHydrationWarning className="bg-background text-foreground">
-        <PhoneShell>{children}</PhoneShell>
+        {children}
       </body>
     </html>
   );

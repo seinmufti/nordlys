@@ -42,7 +42,7 @@ export default async function HostedProjectPage({ params }: PageProps) {
     <iframe
       src={iframeSrc}
       title={route.name}
-      className="fixed inset-0 h-full w-full border-0 bg-black"
+      className="hosted-app-frame"
       allow={getHostedProjectIframeAllow(route.href)}
     />
   );

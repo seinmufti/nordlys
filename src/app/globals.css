@@ -1915,3 +1915,22 @@ html {
     height: clamp(3rem, 4vh, 4rem);
   }
 }
+
+.hosted-app-shell {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  height: 100dvh;
+  overflow: hidden;
+  background: black;
+}
+
+.hosted-app-frame {
+  display: block;
+  width: 100%;
+  height: 100%;
+  height: 100dvh;
+  border: 0;
+  background: black;
+}
