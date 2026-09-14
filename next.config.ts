@@ -13,28 +13,6 @@ const nextConfig: NextConfig = {
       beforeFiles: buildHostedRewrites(),
     };
   },
-  async headers() {
-    return [
-      {
-        source: "/:slug",
-        headers: [
-          {
-            key: "Permissions-Policy",
-            value: "fullscreen=(self), web-share=(self), clipboard-write=(self), clipboard-read=(self)",
-          },
-        ],
-      },
-      {
-        source: "/:slug/:path*",
-        headers: [
-          {
-            key: "Permissions-Policy",
-            value: "fullscreen=(self), web-share=(self), clipboard-write=(self), clipboard-read=(self)",
-          },
-        ],
-      },
-    ];
-  },
 };
 
 export default nextConfig;
