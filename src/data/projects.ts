@@ -47,8 +47,12 @@ export function getHostedIframeSrc(
   pathSegments: string[] = [],
 ): string {
   const base = href.endsWith("/") ? href : `${href}/`;
-  if (pathSegments.length === 0) return base;
-  return new URL(pathSegments.join("/"), base).href;
+  const url =
+    pathSegments.length === 0
+      ? new URL(base)
+      : new URL(pathSegments.join("/"), base);
+  url.searchParams.set("embed", "1");
+  return url.href;
 }
 
 /** Permissions required for export/share inside cross-origin hosted project iframes. */
