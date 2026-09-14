@@ -41,8 +41,8 @@ export function getProjectLink(project: Project): string {
   return getProjectPath(project);
 }
 
-/** External URL for a hosted app, preserving deep-link path segments. */
-export function getHostedRedirectUrl(
+/** Iframe src for a hosted app, preserving deep-link path segments. */
+export function getHostedIframeSrc(
   href: string,
   pathSegments: string[] = [],
 ): string {

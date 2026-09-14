@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
+import { HostedAppFrame } from "@/components/hosted-app-frame";
 import {
   findHostedRoute,
-  getHostedRedirectUrl,
+  getHostedIframeSrc,
+  getHostedProjectIframeAllow,
   getProjectPathSegment,
   hostedApps,
   projects,
@@ -35,5 +37,11 @@ export default async function HostedProjectPage({ params }: PageProps) {
   const route = findHostedRoute(slug);
   if (!route) notFound();
 
-  redirect(getHostedRedirectUrl(route.href, path));
+  return (
+    <HostedAppFrame
+      src={getHostedIframeSrc(route.href, path)}
+      title={route.name}
+      allow={getHostedProjectIframeAllow(route.href)}
+    />
+  );
 }
