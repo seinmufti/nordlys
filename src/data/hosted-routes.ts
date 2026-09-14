@@ -14,6 +14,6 @@ export const hostedRoutes: HostedRoute[] = [
   { slug: "actualtennis", href: "https://actualtennis.vercel.app/actualtennis/" },
   { slug: "wasl", href: "https://wasl-pi.vercel.app/wasl/" },
   { slug: "drkani", href: "https://drkani-seven.vercel.app/drkani/" },
-  { slug: "baitalwakalat", href: "https://baitalwakalat.vercel.app/baitalwakalat/" },
+  { slug: "baitalwakalat", href: "https://baitalwakalat.vercel.app/" },
   { slug: "pr-logger", href: "https://pr-logger-railway.vercel.app/" },
 ];
