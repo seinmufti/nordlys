@@ -20,5 +20,11 @@ export function buildHostedRewrites(): Rewrite[] {
     );
   }
 
+  // jardCAD is built with base `/`, so its HTML requests /assets on this origin.
+  rewrites.push({
+    source: "/assets/:path*",
+    destination: "https://jard-plum.vercel.app/assets/:path*",
+  });
+
   return rewrites;
 }
