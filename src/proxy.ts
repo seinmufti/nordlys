@@ -3,20 +3,6 @@ import type { NextRequest } from "next/server";
 
 const BAIT_ORIGIN = "https://baitalwakalat.vercel.app";
 
-const NORDLYS_PATHS = [
-  "/api/",
-  "/wasl",
-  "/drkani",
-  "/jardCAD",
-  "/ActualTennis",
-  "/pr-logger",
-];
-
-function isNordlysPath(pathname: string) {
-  if (pathname === "/" || pathname === "/favicon.ico") return true;
-  return NORDLYS_PATHS.some((prefix) => pathname.startsWith(prefix));
-}
-
 function baitUrl(pathname: string, search: string) {
   const destPath =
     pathname === "/baitalwakalat" || pathname === "/baitalwakalat/"
@@ -25,33 +11,44 @@ function baitUrl(pathname: string, search: string) {
   return new URL(`${destPath}${search}`, BAIT_ORIGIN);
 }
 
-export function proxy(request: NextRequest) {
+function withAbsoluteAssets(html: string) {
+  return html
+    .replaceAll('"/_next/', `"${BAIT_ORIGIN}/_next/`)
+    .replaceAll("'/_next/", `'${BAIT_ORIGIN}/_next/`);
+}
+
+export async function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
-  const referer = request.headers.get("referer") ?? "";
-  const fromBait = /\/baitalwakalat(?:\/|$|\?)/.test(referer);
-
-  if (pathname === "/baitalwakalat" || pathname.startsWith("/baitalwakalat/")) {
-    return NextResponse.rewrite(baitUrl(pathname, search));
+  if (pathname !== "/baitalwakalat" && !pathname.startsWith("/baitalwakalat/")) {
+    return NextResponse.next();
   }
 
-  if (fromBait && !isNordlysPath(pathname)) {
-    return NextResponse.rewrite(new URL(`${pathname}${search}`, BAIT_ORIGIN));
+  const upstream = await fetch(baitUrl(pathname, search), {
+    headers: {
+      accept: request.headers.get("accept") ?? "*/*",
+      "user-agent": request.headers.get("user-agent") ?? "",
+    },
+  });
+
+  const contentType = upstream.headers.get("content-type") ?? "";
+  if (!contentType.includes("text/html")) {
+    return new NextResponse(upstream.body, {
+      status: upstream.status,
+      headers: {
+        "content-type": contentType,
+      },
+    });
   }
 
-  return NextResponse.next();
+  const html = withAbsoluteAssets(await upstream.text());
+  return new NextResponse(html, {
+    status: upstream.status,
+    headers: {
+      "content-type": "text/html; charset=utf-8",
+    },
+  });
 }
 
 export const config = {
-  matcher: [
-    "/baitalwakalat",
-    "/baitalwakalat/:path*",
-    {
-      source: "/_next/:path*",
-      has: [{ type: "header", key: "referer", value: ".*\\/baitalwakalat.*" }],
-    },
-    {
-      source: "/:path*",
-      has: [{ type: "header", key: "referer", value: ".*\\/baitalwakalat.*" }],
-    },
-  ],
+  matcher: ["/baitalwakalat", "/baitalwakalat/:path*"],
 };
