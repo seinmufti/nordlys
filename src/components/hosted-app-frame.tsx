@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 
 type HostedAppFrameProps = {
   src: string;
@@ -11,10 +11,10 @@ type HostedAppFrameProps = {
 function postParentMetrics(data: Record<string, unknown>) {
   const body = JSON.stringify({
     sessionId: "ab1c2d",
-    runId: "pre-fix",
-    hypothesisId: "H3",
+    runId: "post-fix-2",
+    hypothesisId: "H10",
     location: "hosted-app-frame.tsx:measure",
-    message: "parent vs iframe box",
+    message: "iframe box from screen.width",
     data,
     timestamp: Date.now(),
   });
@@ -38,27 +38,49 @@ function postParentMetrics(data: Record<string, unknown>) {
 
 export function HostedAppFrame({ src, title, allow }: HostedAppFrameProps) {
   const ref = useRef<HTMLIFrameElement>(null);
+  const [box, setBox] = useState<{ width: number; height: number } | null>(
+    null,
+  );
 
-  useEffect(() => {
-    const iframe = ref.current;
-    const rect = iframe?.getBoundingClientRect();
-    const vis = window.visualViewport;
-    postParentMetrics({
-      src,
-      parentInner: `${window.innerWidth}x${window.innerHeight}`,
-      parentClient: `${document.documentElement.clientWidth}x${document.documentElement.clientHeight}`,
-      parentVis: vis
-        ? `${Math.round(vis.width)}x${Math.round(vis.height)} s=${vis.scale}`
-        : null,
-      screen: `${window.screen.width}x${window.screen.height}`,
-      iframeRect: rect
-        ? `${Math.round(rect.width)}x${Math.round(rect.height)}`
-        : null,
-      iframeAttrs: iframe
-        ? { width: iframe.getAttribute("width"), height: iframe.getAttribute("height") }
-        : null,
-    });
+  useLayoutEffect(() => {
+    const sync = () => {
+      const next = {
+        width: Math.round(window.screen.width),
+        height: Math.round(
+          window.visualViewport?.height ?? window.innerHeight,
+        ),
+      };
+      setBox(next);
+      const iframe = ref.current;
+      const rect = iframe?.getBoundingClientRect();
+      const vis = window.visualViewport;
+      postParentMetrics({
+        src,
+        box: `${next.width}x${next.height}`,
+        parentInner: `${window.innerWidth}x${window.innerHeight}`,
+        parentClient: `${document.documentElement.clientWidth}x${document.documentElement.clientHeight}`,
+        parentVis: vis
+          ? `${Math.round(vis.width)}x${Math.round(vis.height)} s=${vis.scale}`
+          : null,
+        screen: `${window.screen.width}x${window.screen.height}`,
+        iframeRect: rect
+          ? `${Math.round(rect.width)}x${Math.round(rect.height)}`
+          : null,
+      });
+    };
+
+    sync();
+    window.addEventListener("resize", sync);
+    window.visualViewport?.addEventListener("resize", sync);
+    return () => {
+      window.removeEventListener("resize", sync);
+      window.visualViewport?.removeEventListener("resize", sync);
+    };
   }, [src]);
+
+  if (!box) {
+    return <div className="hosted-app-frame" aria-hidden />;
+  }
 
   return (
     <iframe
@@ -67,6 +89,9 @@ export function HostedAppFrame({ src, title, allow }: HostedAppFrameProps) {
       title={title}
       className="hosted-app-frame"
       allow={allow}
+      width={box.width}
+      height={box.height}
+      style={{ width: box.width, height: box.height }}
     />
   );
 }
