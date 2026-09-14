@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { buildHostedRewrites } from "./src/data/hosted-rewrites";
 
 const nextConfig: NextConfig = {
   allowedDevOrigins: [
@@ -7,6 +8,11 @@ const nextConfig: NextConfig = {
     "192.168.1.*",
     "192.168.0.*",
   ],
+  async rewrites() {
+    return {
+      beforeFiles: buildHostedRewrites(),
+    };
+  },
   async headers() {
     return [
       {

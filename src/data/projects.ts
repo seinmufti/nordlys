@@ -19,7 +19,7 @@ export type Project = {
   devices?: ProjectDevice[];
   /** Bottom bar fill on carousel cards. */
   accent: string;
-  /** External app URL, embedded in the hosted project page iframe. */
+  /** Live app URL — also listed in hosted-routes.ts for next.config rewrites. */
   href: string;
   image?: StaticImageData;
 };
@@ -39,61 +39,6 @@ export function getProjectPath(project: Project): string {
 
 export function getProjectLink(project: Project): string {
   return getProjectPath(project);
-}
-
-/** Build iframe src for a hosted app, preserving deep-link path segments. */
-export function getHostedIframeSrc(
-  href: string,
-  pathSegments: string[] = [],
-): string {
-  const base = href.endsWith("/") ? href : `${href}/`;
-  if (pathSegments.length === 0) return base;
-  return new URL(pathSegments.join("/"), base).href;
-}
-
-/** Permissions required for export/share inside cross-origin hosted project iframes. */
-export function getHostedProjectIframeAllow(href: string): string {
-  const permissions = ["fullscreen", "web-share", "clipboard-read"];
-
-  try {
-    permissions.push(`clipboard-write ${new URL(href).origin}`);
-  } catch {
-    permissions.push("clipboard-write");
-  }
-
-  return permissions.join("; ");
-}
-
-export type HostedApp = {
-  slug: string;
-  name: string;
-  tagline: string;
-  href: string;
-};
-
-/** URL-only hosted apps (not shown in the projects carousel). */
-export const hostedApps: HostedApp[] = [
-  {
-    slug: "pr-logger",
-    name: "PR Logger",
-    tagline: "Pull request logging",
-    href: "https://pr-logger-railway.vercel.app/",
-  },
-];
-
-export function findProjectBySlug(slug: string): Project | undefined {
-  return projects.find(
-    (project) =>
-      getProjectPathSegment(project).toLowerCase() === slug.toLowerCase(),
-  );
-}
-
-export function findHostedAppBySlug(slug: string): HostedApp | undefined {
-  return hostedApps.find((app) => app.slug.toLowerCase() === slug.toLowerCase());
-}
-
-export function findHostedRoute(slug: string): Project | HostedApp | undefined {
-  return findProjectBySlug(slug) ?? findHostedAppBySlug(slug);
 }
 
 export const projects: Project[] = [
