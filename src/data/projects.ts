@@ -51,6 +51,8 @@ export function getHostedIframeSrc(
   return new URL(pathSegments.join("/"), base).href;
 }
 
+export const getHostedRedirectUrl = getHostedIframeSrc;
+
 /** Permissions required for export/share inside cross-origin hosted project iframes. */
 export function getHostedProjectIframeAllow(href: string): string {
   const permissions = ["fullscreen", "web-share", "clipboard-read"];
