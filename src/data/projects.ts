@@ -74,6 +74,12 @@ export type HostedApp = {
 /** URL-only hosted apps (not shown in the projects carousel). */
 export const hostedApps: HostedApp[] = [
   {
+    slug: "baitalwakalat",
+    name: "Bait Al-Wakalat",
+    tagline: "European professional cosmetics in Iraq",
+    href: "https://baitalwakalat.vercel.app/",
+  },
+  {
     slug: "pr-logger",
     name: "PR Logger",
     tagline: "Pull request logging",
