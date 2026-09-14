@@ -45,6 +45,7 @@ export async function proxy(request: NextRequest) {
     status: upstream.status,
     headers: {
       "content-type": "text/html; charset=utf-8",
+      "cache-control": "no-store, must-revalidate",
     },
   });
 }
