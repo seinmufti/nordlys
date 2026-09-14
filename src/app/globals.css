@@ -1916,8 +1916,8 @@ html {
   }
 }
 
-html.hosted-route,
-body.hosted-route {
+html:has(.hosted-app-shell),
+body:has(.hosted-app-shell) {
   overflow: hidden;
   width: 100%;
   height: 100%;
@@ -1936,9 +1936,6 @@ body.hosted-route {
 }
 
 .hosted-app-frame {
-  position: fixed;
-  top: 0;
-  left: 0;
   display: block;
   width: 1px;
   min-width: 100%;
@@ -1947,5 +1944,4 @@ body.hosted-route {
   height: 100dvh;
   border: 0;
   background: black;
-  transform: translate(0, 0);
 }
