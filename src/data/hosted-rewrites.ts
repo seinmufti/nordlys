@@ -38,6 +38,9 @@ export function buildHostedRewrites(): Rewrite[] {
 
   for (const asset of [
     "nordlys.png",
+    "sr-promo.mp4",
+    "sr-promo-mobile.mp4",
+    "sr-promo-web.mp4",
     "sr-promo-poster.jpg",
     "iraq-outline.svg",
     "iraq-adm1.geojson",

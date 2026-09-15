@@ -25,6 +25,9 @@ const BAIT_PUBLIC_PREFIXES = [
 
 const BAIT_PUBLIC_FILES = new Set([
   "/nordlys.png",
+  "/sr-promo.mp4",
+  "/sr-promo-mobile.mp4",
+  "/sr-promo-web.mp4",
   "/sr-promo-poster.jpg",
   "/iraq-outline.svg",
   "/iraq-adm1.geojson",
@@ -79,6 +82,9 @@ export const config = {
     "/social/:path*",
     "/flags/:path*",
     "/reels/:path*",
+    "/sr-promo.mp4",
+    "/sr-promo-mobile.mp4",
+    "/sr-promo-web.mp4",
     "/sr-promo-poster.jpg",
     "/iraq-outline.svg",
     "/iraq-adm1.geojson",
