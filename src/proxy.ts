@@ -14,6 +14,22 @@ const NORDLYS_PREFIXES = [
   "/pr-logger",
 ];
 
+/** Public paths that only Bait Al-Wakalat uses on this domain. */
+const BAIT_PUBLIC_PREFIXES = [
+  "/brands/",
+  "/salons/",
+  "/social/",
+  "/flags/",
+  "/reels/",
+];
+
+const BAIT_PUBLIC_FILES = new Set([
+  "/nordlys.png",
+  "/sr-promo-poster.jpg",
+  "/iraq-outline.svg",
+  "/iraq-adm1.geojson",
+]);
+
 function isNordlysPath(pathname: string) {
   if (pathname === "/" || pathname === "/favicon.ico") return true;
   return NORDLYS_PREFIXES.some((prefix) => pathname.startsWith(prefix));
@@ -23,14 +39,32 @@ function isBaitalwakalatReferer(referer: string) {
   return /\/baitalwakalat(?:\/|$|\?|#)/.test(referer);
 }
 
-export function proxy(request: NextRequest) {
-  const referer = request.headers.get("referer") ?? "";
-  if (!isBaitalwakalatReferer(referer)) {
-    return NextResponse.next();
-  }
+function isBaitImageRequest(pathname: string, search: string) {
+  if (pathname !== "/_next/image") return false;
 
+  const url = new URLSearchParams(search).get("url");
+  if (!url) return false;
+
+  const decoded = decodeURIComponent(url);
+  return /^\/(brands|salons|nordlys\.png)(\/|$)/.test(decoded);
+}
+
+function shouldProxyToBait(pathname: string, search: string, referer: string) {
+  if (isNordlysPath(pathname)) return false;
+  if (isBaitImageRequest(pathname, search)) return true;
+  if (BAIT_PUBLIC_FILES.has(pathname)) return true;
+  if (BAIT_PUBLIC_PREFIXES.some((prefix) => pathname.startsWith(prefix))) {
+    return true;
+  }
+  if (isBaitalwakalatReferer(referer)) return true;
+  return false;
+}
+
+export function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
-  if (isNordlysPath(pathname)) {
+  const referer = request.headers.get("referer") ?? "";
+
+  if (!shouldProxyToBait(pathname, search, referer)) {
     return NextResponse.next();
   }
 
@@ -40,12 +74,15 @@ export function proxy(request: NextRequest) {
 export const config = {
   matcher: [
     "/_next/:path*",
+    "/brands/:path*",
+    "/salons/:path*",
     "/social/:path*",
     "/flags/:path*",
     "/reels/:path*",
     "/sr-promo-poster.jpg",
     "/iraq-outline.svg",
     "/iraq-adm1.geojson",
+    "/nordlys.png",
     "/logo.png",
   ],
 };
