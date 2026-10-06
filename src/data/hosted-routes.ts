@@ -9,6 +9,7 @@ export type HostedRoute = {
 
 export const hostedRoutes: HostedRoute[] = [
   { slug: "jardCAD", href: "https://jard-plum.vercel.app/jardCAD/" },
+  { slug: "jardSORT", href: "https://jardsort.vercel.app/" },
   { slug: "ActualTennis", href: "https://actualtennis.vercel.app" },
   // Vite base is lowercase; HTML requests /actualtennis/assets/...
   { slug: "actualtennis", href: "https://actualtennis.vercel.app/actualtennis/" },

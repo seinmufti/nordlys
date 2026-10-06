@@ -3,6 +3,8 @@ import type { NextRequest } from "next/server";
 
 const BAIT_ORIGIN = "https://baitalwakalat.vercel.app";
 const DRNIVEEN_ORIGIN = "https://drniveensalayi.vercel.app";
+const JARD_CAD_ORIGIN = "https://jard-plum.vercel.app";
+const JARD_SORT_ORIGIN = "https://jardsort.vercel.app";
 
 /** Nordlys-owned paths that must never be proxied to Bait Al-Wakalat. */
 const NORDLYS_PREFIXES = [
@@ -11,6 +13,7 @@ const NORDLYS_PREFIXES = [
   "/drkani",
   "/drniveen",
   "/jardCAD",
+  "/jardSORT",
   "/ActualTennis",
   "/actualtennis",
   "/pr-logger",
@@ -49,6 +52,28 @@ function isBaitalwakalatReferer(referer: string) {
 
 function isDrniveenReferer(referer: string) {
   return /\/drniveen(?:\/|$|\?|#)/.test(referer);
+}
+
+function isJardCadReferer(referer: string) {
+  return /\/jardCAD(?:\/|$|\?|#)/.test(referer);
+}
+
+function isJardSortReferer(referer: string) {
+  return /\/jardSORT(?:\/|$|\?|#)/.test(referer);
+}
+
+function viteAppAssetOrigin(referer: string): string | null {
+  if (isJardSortReferer(referer)) return JARD_SORT_ORIGIN;
+  if (isJardCadReferer(referer)) return JARD_CAD_ORIGIN;
+  return null;
+}
+
+function shouldProxyToViteAppAssets(pathname: string, referer: string) {
+  const origin = viteAppAssetOrigin(referer);
+  if (!origin) return null;
+  if (pathname.startsWith("/assets/")) return origin;
+  if (pathname === "/favicon.svg") return origin;
+  return null;
 }
 
 function isBaitImageRequest(pathname: string, search: string) {
@@ -100,6 +125,11 @@ export function proxy(request: NextRequest) {
     return NextResponse.rewrite(new URL(`${pathname}${search}`, DRNIVEEN_ORIGIN));
   }
 
+  const viteOrigin = shouldProxyToViteAppAssets(pathname, referer);
+  if (viteOrigin) {
+    return NextResponse.rewrite(new URL(`${pathname}${search}`, viteOrigin));
+  }
+
   if (!shouldProxyToBait(pathname, search, referer)) {
     return NextResponse.next();
   }
@@ -110,9 +140,11 @@ export function proxy(request: NextRequest) {
 export const config = {
   matcher: [
     "/_next/:path*",
+    "/assets/:path*",
     "/images/:path*",
     "/videos/:path*",
     "/favicon.ico",
+    "/favicon.svg",
     "/brands/:path*",
     "/salons/:path*",
     "/social/:path*",

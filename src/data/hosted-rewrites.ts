@@ -22,11 +22,7 @@ export function buildHostedRewrites(): Rewrite[] {
     );
   }
 
-  // jardCAD is built with base `/`, so its HTML requests /assets on this origin.
-  rewrites.push({
-    source: "/assets/:path*",
-    destination: "https://jard-plum.vercel.app/assets/:path*",
-  });
+  // jardCAD / jardSORT Vite builds request /assets on this origin — see proxy.ts (referer-based).
 
   // Bait Al-Wakalat uses root-relative /public paths Nordlys does not own.
   for (const prefix of ["brands", "salons", "social", "flags", "reels"] as const) {
