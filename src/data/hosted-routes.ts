@@ -22,5 +22,6 @@ export const hostedRoutes: HostedRoute[] = [
     slug: "catalogueplus/aksesuaratali",
     href: "https://catalogueplus.vercel.app/aksesuaratali/",
   },
+  { slug: "catalogueplus", href: "https://catalogueplus.vercel.app/" },
   { slug: "pr-logger", href: "https://pr-logger-railway.vercel.app/" },
 ];
