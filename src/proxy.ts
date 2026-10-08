@@ -5,6 +5,7 @@ const BAIT_ORIGIN = "https://baitalwakalat.vercel.app";
 const DRNIVEEN_ORIGIN = "https://drniveensalayi.vercel.app";
 const JARD_CAD_ORIGIN = "https://jard-plum.vercel.app";
 const JARD_SORT_ORIGIN = "https://jardsort.vercel.app";
+const CATALOGUE_PLUS_ORIGIN = "https://catalogueplus.vercel.app";
 
 /** Nordlys-owned paths that must never be proxied to Bait Al-Wakalat. */
 const NORDLYS_PREFIXES = [
@@ -14,6 +15,7 @@ const NORDLYS_PREFIXES = [
   "/drniveen",
   "/jardCAD",
   "/jardSORT",
+  "/catalogueplus",
   "/ActualTennis",
   "/actualtennis",
   "/pr-logger",
@@ -62,7 +64,12 @@ function isJardSortReferer(referer: string) {
   return /\/jardSORT(?:\/|$|\?|#)/.test(referer);
 }
 
+function isCataloguePlusAksesuarataliReferer(referer: string) {
+  return /\/catalogueplus\/aksesuaratali(?:\/|$|\?|#)/.test(referer);
+}
+
 function viteAppAssetOrigin(referer: string): string | null {
+  if (isCataloguePlusAksesuarataliReferer(referer)) return CATALOGUE_PLUS_ORIGIN;
   if (isJardSortReferer(referer)) return JARD_SORT_ORIGIN;
   if (isJardCadReferer(referer)) return JARD_CAD_ORIGIN;
   return null;
