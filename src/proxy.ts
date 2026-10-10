@@ -6,6 +6,7 @@ const DRNIVEEN_ORIGIN = "https://drniveensalayi.vercel.app";
 const JARD_CAD_ORIGIN = "https://jard-plum.vercel.app";
 const JARD_SORT_ORIGIN = "https://jardsort.vercel.app";
 const CATALOGUE_PLUS_ORIGIN = "https://catalogueplus.vercel.app";
+const RERAW_ORIGIN = "https://reraw.vercel.app";
 
 /** Nordlys-owned paths that must never be proxied to Bait Al-Wakalat. */
 const NORDLYS_PREFIXES = [
@@ -16,6 +17,7 @@ const NORDLYS_PREFIXES = [
   "/jardCAD",
   "/jardSORT",
   "/catalogueplus",
+  "/reraw",
   "/ActualTennis",
   "/actualtennis",
   "/pr-logger",
@@ -68,8 +70,13 @@ function isCataloguePlusReferer(referer: string) {
   return /\/catalogueplus(?:\/|$|\?|#)/.test(referer);
 }
 
+function isRerawReferer(referer: string) {
+  return /\/reraw(?:\/|$|\?|#)/.test(referer);
+}
+
 function viteAppAssetOrigin(referer: string): string | null {
   if (isCataloguePlusReferer(referer)) return CATALOGUE_PLUS_ORIGIN;
+  if (isRerawReferer(referer)) return RERAW_ORIGIN;
   if (isJardSortReferer(referer)) return JARD_SORT_ORIGIN;
   if (isJardCadReferer(referer)) return JARD_CAD_ORIGIN;
   return null;
@@ -137,6 +144,10 @@ export function proxy(request: NextRequest) {
     return NextResponse.rewrite(new URL(`${pathname}${search}`, viteOrigin));
   }
 
+  if (isRerawReferer(referer) && pathname.startsWith("/api/")) {
+    return NextResponse.rewrite(new URL(`${pathname}${search}`, RERAW_ORIGIN));
+  }
+
   if (!shouldProxyToBait(pathname, search, referer)) {
     return NextResponse.next();
   }
@@ -152,6 +163,7 @@ export const config = {
     "/videos/:path*",
     "/favicon.ico",
     "/favicon.svg",
+    "/api/:path*",
     "/brands/:path*",
     "/salons/:path*",
     "/social/:path*",
