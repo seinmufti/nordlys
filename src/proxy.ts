@@ -35,6 +35,8 @@ const BAIT_PUBLIC_PREFIXES = [
   "/reels/",
 ];
 
+const RERAW_HOSTED_COOKIE = "nordlys-hosted-reraw";
+
 const BAIT_PUBLIC_FILES = new Set([
   "/nordlys.png",
   "/sr-promo.mp4",
@@ -74,19 +76,32 @@ function isRerawReferer(referer: string) {
   return /\/reraw(?:\/|$|\?|#)/.test(referer);
 }
 
-function viteAppAssetOrigin(referer: string): string | null {
+function isRerawHosted(request: NextRequest, referer: string) {
+  if (isRerawReferer(referer)) return true;
+  return request.cookies.get(RERAW_HOSTED_COOKIE)?.value === "1";
+}
+
+function viteAppAssetOrigin(request: NextRequest, referer: string): string | null {
   if (isCataloguePlusReferer(referer)) return CATALOGUE_PLUS_ORIGIN;
-  if (isRerawReferer(referer)) return RERAW_ORIGIN;
+  if (isRerawHosted(request, referer)) return RERAW_ORIGIN;
   if (isJardSortReferer(referer)) return JARD_SORT_ORIGIN;
   if (isJardCadReferer(referer)) return JARD_CAD_ORIGIN;
   return null;
 }
 
-function shouldProxyToViteAppAssets(pathname: string, referer: string) {
-  const origin = viteAppAssetOrigin(referer);
+function shouldProxyToViteAppAssets(
+  request: NextRequest,
+  pathname: string,
+  referer: string,
+) {
+  const origin = viteAppAssetOrigin(request, referer);
   if (!origin) return null;
   if (pathname.startsWith("/assets/")) return origin;
   if (pathname === "/favicon.svg") return origin;
+  if (origin === RERAW_ORIGIN) {
+    if (pathname.endsWith(".geojson")) return origin;
+    if (pathname === "/nordlys-logo.png") return origin;
+  }
   return null;
 }
 
@@ -131,20 +146,53 @@ function shouldProxyToBait(pathname: string, search: string, referer: string) {
   return false;
 }
 
+function rerawUpstreamUrl(pathname: string, search: string) {
+  let subpath = pathname.slice("/reraw".length);
+  if (subpath === "") subpath = "/";
+  else if (!subpath.startsWith("/")) subpath = `/${subpath}`;
+
+  const url = new URL(subpath, RERAW_ORIGIN);
+  if (search) url.search = search;
+  return url;
+}
+
+function withRerawHostedCookie(
+  request: NextRequest,
+  response: NextResponse,
+): NextResponse {
+  if (!request.nextUrl.pathname.startsWith("/reraw")) {
+    return response;
+  }
+
+  response.cookies.set(RERAW_HOSTED_COOKIE, "1", {
+    path: "/",
+    maxAge: 60 * 60 * 24,
+    sameSite: "lax",
+  });
+  return response;
+}
+
 export function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
   const referer = request.headers.get("referer") ?? "";
+
+  if (pathname === "/reraw" || pathname.startsWith("/reraw/")) {
+    return withRerawHostedCookie(
+      request,
+      NextResponse.rewrite(rerawUpstreamUrl(pathname, search)),
+    );
+  }
 
   if (shouldProxyToDrniveen(pathname, search, referer)) {
     return NextResponse.rewrite(new URL(`${pathname}${search}`, DRNIVEEN_ORIGIN));
   }
 
-  const viteOrigin = shouldProxyToViteAppAssets(pathname, referer);
+  const viteOrigin = shouldProxyToViteAppAssets(request, pathname, referer);
   if (viteOrigin) {
     return NextResponse.rewrite(new URL(`${pathname}${search}`, viteOrigin));
   }
 
-  if (isRerawReferer(referer) && pathname.startsWith("/api/")) {
+  if (isRerawHosted(request, referer) && pathname.startsWith("/api/")) {
     return NextResponse.rewrite(new URL(`${pathname}${search}`, RERAW_ORIGIN));
   }
 
@@ -157,6 +205,8 @@ export function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
+    "/reraw",
+    "/reraw/:path*",
     "/_next/:path*",
     "/assets/:path*",
     "/images/:path*",
