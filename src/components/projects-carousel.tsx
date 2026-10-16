@@ -116,10 +116,9 @@ function ProjectCardContent({ project }: { project: Project }) {
         {project.image ? (
           <Image
             src={project.image}
-            alt=""
+            alt={`${project.name} app screenshot`}
             fill
             sizes="(max-width: 640px) 45vw, 30vw"
-            unoptimized
             className="object-cover object-center"
             draggable={false}
           />
@@ -172,6 +171,7 @@ function ProjectCard({
     <a
       ref={cardRef}
       href={getProjectLink(project)}
+      aria-current={isActive ? "true" : undefined}
       draggable={false}
       onClick={(event) => {
         if (shouldSuppressClick()) {
@@ -225,6 +225,7 @@ export function ProjectsCarousel() {
   const [transitionEnabled, setTransitionEnabled] = useState(false);
   const [isReady, setIsReady] = useState(false);
   const [paused, setPaused] = useState(false);
+  const [userPaused, setUserPaused] = useState(false);
   const [isInteracting, setIsInteracting] = useState(false);
   const [autoKey, setAutoKey] = useState(0);
   const [reducedMotion, setReducedMotion] = useState(false);
@@ -391,14 +392,14 @@ export function ProjectsCarousel() {
     const reduced = window.matchMedia(
       "(prefers-reduced-motion: reduce)",
     ).matches;
-    if (reduced || !AUTO_ADVANCE_ENABLED || paused || isInteracting || !isReady) return;
+    if (reduced || !AUTO_ADVANCE_ENABLED || userPaused || paused || isInteracting || !isReady) return;
 
     const timer = window.setInterval(() => {
       navigateBy(1);
     }, ADVANCE_MS);
 
     return () => window.clearInterval(timer);
-  }, [paused, autoKey, isInteracting, isReady, navigateBy]);
+  }, [paused, userPaused, autoKey, isInteracting, isReady, navigateBy]);
 
   useEffect(() => {
     const viewport = viewportRef.current;
@@ -669,12 +670,36 @@ export function ProjectsCarousel() {
   ).flatMap((block) => block.split(/\n\n+/).filter(Boolean));
 
   const autoProgressKey = `${logicalIndex}-${autoKey}`;
-  const autoProgressPaused = paused || isInteracting;
+  const autoProgressPaused = paused || userPaused || isInteracting;
   const showAutoProgress =
     AUTO_ADVANCE_ENABLED && isReady && !reducedMotion;
 
   return (
-    <div className="projects-carousel-shell">
+    <div
+      className="projects-carousel-shell"
+      role="region"
+      aria-roledescription="carousel"
+      aria-label="Projects"
+      onKeyDown={(event) => {
+        if (event.key === "ArrowRight") {
+          event.preventDefault();
+          navigateBy(1);
+        } else if (event.key === "ArrowLeft") {
+          event.preventDefault();
+          navigateBy(-1);
+        }
+      }}
+    >
+      {AUTO_ADVANCE_ENABLED && !reducedMotion ? (
+        <button
+          type="button"
+          className="projects-carousel-pause"
+          aria-pressed={userPaused}
+          onClick={() => setUserPaused((value) => !value)}
+        >
+          {userPaused ? "Play slideshow" : "Pause slideshow"}
+        </button>
+      ) : null}
       <div
         className={`projects-carousel${isReady ? " is-ready" : ""}`}
         onMouseEnter={() => {

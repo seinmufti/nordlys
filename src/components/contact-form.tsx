@@ -2,8 +2,6 @@
 
 import { FormEvent, useEffect, useState } from "react";
 
-const CONTACT_TO = "hussein.mufti01@gmail.com";
-
 const nameFieldClass = "contact-field contact-field--name";
 const emailFieldClass = "contact-field contact-field--email";
 const messageFieldClass = "contact-field contact-field--message min-h-28 resize-y";
@@ -13,77 +11,24 @@ const labelClass =
 
 type SubmitStatus = "idle" | "loading" | "success" | "error";
 
-type DeliveryResult = {
-  error?: string;
-  message?: string;
-  success?: string | boolean;
-};
-
-function formSubmitSucceeded(success: DeliveryResult["success"]) {
-  return success === true || success === "true";
-}
-
-async function sendViaFormSubmit(name: string, email: string, message: string) {
-  const response = await fetch(
-    `https://formsubmit.co/ajax/${encodeURIComponent(CONTACT_TO)}`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-      },
-      body: JSON.stringify({
-        name,
-        email,
-        message,
-        _subject: `Nordlys inquiry from ${name}`,
-        _replyto: email,
-        _template: "table",
-        _url: window.location.href,
-      }),
-    },
-  );
-
-  const raw = await response.text();
-  let result: DeliveryResult | null = null;
-
-  try {
-    result = JSON.parse(raw) as DeliveryResult;
-  } catch {
-    throw new Error("Could not send your message. Please try again.");
-  }
-
-  const responseText = `${result.message ?? ""} ${result.success ?? ""}`.toLowerCase();
-
-  if (responseText.includes("activation")) {
-    throw new Error(
-      `Check ${CONTACT_TO} (including spam) for a FormSubmit activation email, click the link, then submit again.`,
-    );
-  }
-
-  if (!response.ok || !formSubmitSucceeded(result.success)) {
-    throw new Error(result.message ?? "Could not send your message.");
-  }
-}
-
-async function sendViaApi(name: string, email: string, message: string) {
+async function sendMessage(
+  name: string,
+  email: string,
+  message: string,
+  website: string,
+) {
   const response = await fetch("/api/contact", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name, email, message }),
+    body: JSON.stringify({ name, email, message, website }),
   });
 
-  if (response.status === 503) {
-    return false;
-  }
-
-  const result = (await response.json().catch(() => null)) as DeliveryResult | null;
-
   if (!response.ok) {
+    const result = (await response.json().catch(() => null)) as {
+      error?: string;
+    } | null;
     throw new Error(result?.error ?? "Could not send your message.");
   }
-
-  return true;
 }
 
 export function ContactForm() {
@@ -106,6 +51,7 @@ export function ContactForm() {
     const name = String(data.get("name") ?? "").trim();
     const email = String(data.get("email") ?? "").trim();
     const message = String(data.get("message") ?? "").trim();
+    const website = String(data.get("website") ?? "");
 
     if (!name || !email || !message) {
       setStatus("error");
@@ -117,17 +63,7 @@ export function ContactForm() {
     setErrorMessage("");
 
     try {
-      let sent = false;
-
-      try {
-        sent = await sendViaApi(name, email, message);
-      } catch {
-        sent = false;
-      }
-
-      if (!sent) {
-        await sendViaFormSubmit(name, email, message);
-      }
+      await sendMessage(name, email, message, website);
 
       setStatus("success");
       form.reset();
@@ -148,6 +84,15 @@ export function ContactForm() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
+      <div
+        aria-hidden="true"
+        style={{ position: "absolute", left: "-9999px", height: 0, overflow: "hidden" }}
+      >
+        <label>
+          Website
+          <input type="text" name="website" tabIndex={-1} autoComplete="off" />
+        </label>
+      </div>
       <div className="grid gap-4">
         <label className={labelClass}>
           Name
@@ -180,6 +125,7 @@ export function ContactForm() {
         <textarea
           required
           name="message"
+          maxLength={5000}
           rows={3}
           enterKeyHint="send"
           disabled={status === "loading"}

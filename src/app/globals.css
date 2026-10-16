@@ -1914,3 +1914,78 @@ html {
     height: clamp(3rem, 4vh, 4rem);
   }
 }
+
+.projects-carousel-pause {
+  align-self: center;
+  margin: 0 auto 0.5rem;
+  padding: 0.25rem 0.75rem;
+  border: 1px solid rgb(255 255 255 / 0.25);
+  border-radius: 999px;
+  background: transparent;
+  color: rgb(255 255 255 / 0.75);
+  font-size: 0.6875rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.projects-carousel-pause:hover,
+.projects-carousel-pause:focus-visible {
+  color: #fff;
+  border-color: rgb(255 255 255 / 0.6);
+}
+
+/* Desktop projects: responsive card size, readable two-column feature list. */
+@media (min-width: 768px) {
+  .phone-screen .landing-screen--projects {
+    --projects-card-image-size: clamp(11rem, 37vh, 26rem);
+    --projects-card-meta-height: 8rem;
+    --projects-desc-font-size: 1rem;
+    --projects-desc-line-height: 1.5;
+  }
+
+  .phone-screen .landing-screen--projects .projects-section-layout {
+    width: min(100%, 64rem);
+  }
+
+  .phone-screen .landing-screen--projects .projects-carousel-shell {
+    gap: clamp(1rem, 3vh, 1.75rem);
+  }
+
+  .phone-screen .landing-screen--projects .projects-description-card {
+    display: block;
+    width: min(100%, 56rem);
+    height: auto;
+    min-height: 0;
+    max-height: none;
+    flex: 0 0 auto;
+    padding: clamp(0.75rem, 2vh, 1.25rem) 1.5rem 0;
+    overflow: visible;
+    border-top: 1px solid rgb(255 255 255 / 0.12);
+  }
+
+  .phone-screen .landing-screen--projects .projects-description-card-list {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.4rem;
+    height: auto;
+    min-height: 0;
+    max-height: none;
+  }
+
+  .phone-screen .landing-screen--projects .projects-description-card-list-item {
+    height: auto;
+    min-height: 0;
+    max-height: none;
+    padding-left: 1.5rem;
+    overflow: visible;
+    text-overflow: unset;
+    white-space: normal;
+    color: rgb(255 255 255 / 0.88);
+  }
+
+  .phone-screen .landing-screen--projects .projects-description-card-list-item::before {
+    content: "•";
+    color: #fff;
+  }
+}

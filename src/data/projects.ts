@@ -49,7 +49,7 @@ export const projects: Project[] = [
     description: {
       paragraphs: [
         "Webapp used for designing aluminum frames on the go.",
-        "Featuring a drag and drop pallete which contians 11 parts including: T-rods, windows, doors, etc..\n\nWhich can be used after to export in PDF or high res image for client, plan the build, and calculate costs.",
+        "Featuring a drag and drop palette which contains 11 parts including: T-rods, windows, doors, etc..\n\nWhich can be used after to export in PDF or high res image for client, plan the build, and calculate costs.",
       ],
     },
     accent: "#14532d",
@@ -63,10 +63,10 @@ export const projects: Project[] = [
     tagline: "Match play, scored live",
     description: {
       paragraphs: [
-        "Mobile Web app for booking courts for Tennis online.",
+        "Mobile web app for booking tennis courts online.",
         "Shows bookings available AM through PM for the whole day.",
-        "Choosing between available courts",
-        "Display of rules and prices/offers",
+        "Choose between available courts.",
+        "Rules, prices and offers at a glance.",
       ],
     },
     accent: "#9db82a",
@@ -78,12 +78,12 @@ export const projects: Project[] = [
     name: "Wasl",
     slug: "wasl",
     tag: "Finances",
-    tagline: "Invoices on this device",
+    tagline: "Quick invoices on the go",
     description: {
       paragraphs: [
         "Webapp for creating quick and elegant invoices on the go.",
-        "Exchange rate fetching from local market via API",
-        "Allows to export in A4 format and high res image, either download or share.",
+        "Fetches local-market exchange rates via API.",
+        "Export as A4 or high-res image, to download or share.",
         "3 languages support for creating the invoices for target audience. Generated on the spot.",
       ],
     },
@@ -99,10 +99,10 @@ export const projects: Project[] = [
     tagline: "Renowned dental care",
     description: {
       paragraphs: [
-        "Elegant landing page for a renowned dentist",
-        "Added sliders to reveal before and after images.",
+        "Elegant landing page for a renowned dentist.",
+        "Sliders reveal before-and-after images.",
         "A section to hang all the certifications and achievements for display.",
-        "Pateints can book an appointment in contact section",
+        "Patients can book an appointment in contact section",
       ],
     },
     accent: "#52525b",

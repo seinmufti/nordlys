@@ -15,11 +15,29 @@ const instrument = Instrument_Serif({
   style: ["normal", "italic"],
 });
 
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
+const siteDescription =
+  "Nordlys Solutions builds fast, polished web apps and landing pages — from CAD tools and booking apps to invoicing and clinic sites.";
+
 export const metadata: Metadata = {
+  ...(siteUrl ? { metadataBase: new URL(siteUrl) } : {}),
   title: "Nordlys Solutions",
-  description: "One more problem before sleep.",
+  description: siteDescription,
   icons: {
     icon: "/logo.png",
+  },
+  openGraph: {
+    type: "website",
+    siteName: "Nordlys Solutions",
+    title: "Nordlys Solutions",
+    description: siteDescription,
+    images: [{ url: "/aurora-cover.jpg" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Nordlys Solutions",
+    description: siteDescription,
+    images: ["/aurora-cover.jpg"],
   },
 };
 
