@@ -22,7 +22,10 @@ const SWIPE_LINK_THRESHOLD = 12;
 const TAP_THRESHOLD = 10;
 const COARSE_HORIZONTAL_DRAG_MIN = 20;
 const COARSE_HORIZONTAL_DRAG_RATIO = 1.35;
-const COARSE_VERTICAL_RELEASE_MIN = 8;
+const COARSE_VERTICAL_RELEASE_MIN = 14;
+const COARSE_VERTICAL_DOMINANCE = 1.6;
+const TOUCH_LOCK_SLOP = 6;
+const TOUCH_HORIZONTAL_BIAS = 0.7;
 const SWIPE_SUPPRESS_MS = 300;
 const LOOP_COPIES = 3;
 
@@ -465,7 +468,7 @@ export function ProjectsCarousel() {
       if (isCoarsePointer()) {
         return (
           absY >= COARSE_VERTICAL_RELEASE_MIN &&
-          absY >= absX
+          absY > absX * COARSE_VERTICAL_DOMINANCE
         );
       }
       return absY > TAP_THRESHOLD && absY > absX;
@@ -564,6 +567,14 @@ export function ProjectsCarousel() {
         return;
       }
 
+      if (event.type === "pointercancel") {
+        // Browser took over (e.g. vertical scroll): abort without navigating.
+        setDragOffset(0);
+        finishDrag(false);
+        setIsInteracting(false);
+        return;
+      }
+
       const dx = event.clientX - dragStartXRef.current;
       const dy = event.clientY - dragStartYRef.current;
       const offset = -dx;
@@ -654,9 +665,46 @@ export function ProjectsCarousel() {
 
     viewport.addEventListener("pointerdown", onPointerDown);
 
+    // Touch: once a gesture is mostly horizontal, stop the page from scrolling
+    // vertically so the carousel swipe is not hijacked by the browser.
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let touchLock: "none" | "horizontal" | "vertical" = "none";
+
+    const onTouchStart = (event: TouchEvent) => {
+      const touch = event.touches[0];
+      if (!touch) return;
+      touchStartX = touch.clientX;
+      touchStartY = touch.clientY;
+      touchLock = "none";
+    };
+
+    const onTouchMove = (event: TouchEvent) => {
+      const touch = event.touches[0];
+      if (!touch || touchLock === "vertical") return;
+
+      const absX = Math.abs(touch.clientX - touchStartX);
+      const absY = Math.abs(touch.clientY - touchStartY);
+
+      if (touchLock === "none") {
+        if (Math.max(absX, absY) < TOUCH_LOCK_SLOP) return;
+        touchLock =
+          absX >= absY * TOUCH_HORIZONTAL_BIAS ? "horizontal" : "vertical";
+      }
+
+      if (touchLock === "horizontal" && event.cancelable) {
+        event.preventDefault();
+      }
+    };
+
+    viewport.addEventListener("touchstart", onTouchStart, { passive: true });
+    viewport.addEventListener("touchmove", onTouchMove, { passive: false });
+
     return () => {
       stopTracking();
       viewport.removeEventListener("pointerdown", onPointerDown);
+      viewport.removeEventListener("touchstart", onTouchStart);
+      viewport.removeEventListener("touchmove", onTouchMove);
     };
   }, [navigateBy]);
 
