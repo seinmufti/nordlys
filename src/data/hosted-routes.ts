@@ -25,4 +25,6 @@ export const hostedRoutes: HostedRoute[] = [
   { slug: "catalogueplus", href: "https://catalogueplus.vercel.app/" },
   { slug: "reraw", href: "https://reraw.vercel.app/" },
   { slug: "pr-logger", href: "https://pr-logger-railway.vercel.app/" },
+  // Vite base is /wuza/; the Wuza deployment maps /wuza/* to its root.
+  { slug: "wuza", href: "https://wuza-delta.vercel.app/wuza/" },
 ];

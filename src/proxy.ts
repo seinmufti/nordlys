@@ -21,6 +21,7 @@ const NORDLYS_PREFIXES = [
   "/ActualTennis",
   "/actualtennis",
   "/pr-logger",
+  "/wuza",
 ];
 
 /** Public paths that only Dr. Niveen uses on this domain (root-relative build). */
