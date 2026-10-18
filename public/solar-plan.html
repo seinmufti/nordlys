@@ -1,0 +1,266 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>body{margin:0}[hidden]{display:none!important}</style>
+<title>Rooftop Solar Plan</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: full-bleed 3D viewport, one floating spec sheet + a view toolbar */
+:root{
+  --bg:#dfe7ee; --panel:rgba(255,255,255,.92); --fg:#13202b; --muted:#5a6b78;
+  --line:#c9d4dd; --accent:#1f4fbf; --accent-fg:#ffffff; --sun:#e8a317;
+  --display:"Archivo",system-ui,sans-serif; --mono:"IBM Plex Mono",ui-monospace,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0f1720; --panel:rgba(18,27,37,.92); --fg:#e6eef5; --muted:#93a5b4;
+  --line:#2b3a48; --accent:#6f9bff; --accent-fg:#0b1220; --sun:#f2b636; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1720; --panel:rgba(18,27,37,.92); --fg:#e6eef5; --muted:#93a5b4;
+  --line:#2b3a48; --accent:#6f9bff; --accent-fg:#0b1220; --sun:#f2b636; color-scheme:dark}
+html,body{height:100%}
+body{background:var(--bg);color:var(--fg);font-family:var(--display);overflow:hidden}
+#view{position:fixed;inset:0}
+#view canvas{display:block;touch-action:none}
+.sheet{position:fixed;top:calc(12px + env(safe-area-inset-top,0px));left:max(16px,env(safe-area-inset-left,0px));
+  width:min(290px,calc(100vw - 32px));background:var(--panel);border:1px solid var(--line);border-radius:10px;
+  padding:14px 16px;backdrop-filter:blur(8px);display:flex;flex-direction:column;gap:10px}
+.sheet h1{margin:0;font-size:18px;font-weight:800;letter-spacing:-.01em;text-wrap:balance}
+.sheet .sub{margin:0;color:var(--muted);font-size:12px}
+dl{margin:0;display:grid;grid-template-columns:1fr auto;gap:4px 12px;font-size:12.5px}
+dt{color:var(--muted)} dd{margin:0;font-family:var(--mono);font-variant-numeric:tabular-nums;text-align:right}
+.kw{font-family:var(--mono);font-size:26px;font-weight:500;color:var(--accent);line-height:1}
+.kw small{font-size:12px;color:var(--muted);margin-left:4px}
+label.row{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:12px;color:var(--muted)}
+input[type=range]{flex:1;accent-color:var(--sun)}
+.toggle{display:flex;gap:6px;flex-wrap:wrap}
+.toggle label{font-size:12px;display:flex;align-items:center;gap:5px;cursor:pointer}
+.sheet.min dl,.sheet.min .opt{display:none}
+#minbtn{position:absolute;top:10px;right:10px;border:0;background:none;color:var(--muted);font:600 12px var(--display);cursor:pointer;padding:4px}
+.bar{position:fixed;bottom:calc(14px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);
+  display:flex;gap:4px;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:4px;backdrop-filter:blur(8px)}
+.bar button{border:0;background:none;color:var(--fg);font:600 12.5px var(--display);padding:8px 13px;border-radius:999px;cursor:pointer}
+.bar button[aria-pressed="true"]{background:var(--accent);color:var(--accent-fg)}
+.bar button:focus-visible,#minbtn:focus-visible{outline:2px solid var(--sun);outline-offset:2px}
+.hint{position:fixed;right:max(16px,env(safe-area-inset-right,0px));top:calc(14px + env(safe-area-inset-top,0px));font-size:11px;color:var(--muted);
+  background:var(--panel);padding:6px 10px;border-radius:6px;border:1px solid var(--line)}
+@media (max-width:600px){.hint{display:none}.sheet{padding:12px}.kw{font-size:22px}}
+</style>
+
+</head><body>
+<div id="view"></div>
+
+<section class="sheet" id="sheet">
+  <button id="minbtn" aria-label="Collapse details">Hide</button>
+  <div>
+    <h1>Rooftop Solar Plan</h1>
+    <p class="sub">Tilted steel frame over the roof water tanks</p>
+  </div>
+  <div class="kw" id="kw">15.2<small>kWp</small></div>
+  <dl>
+    <dt>Panels</dt><dd id="d-count">26 × 585 W</dd>
+    <dt>Layout</dt><dd>2 rows × 13, portrait</dd>
+    <dt>Panel size</dt><dd>2.28 × 1.13 m</dd>
+    <dt>Tilt / facing</dt><dd>20° / South</dd>
+    <dt>Frame height</dt><dd>1.6 m → 3.2 m</dd>
+    <dt>Building</dt><dd>16 × 8 × 3.5 m</dd>
+    <dt>Daily yield (Iraq)</dt><dd id="d-yield">≈ 76 kWh</dd>
+  </dl>
+  <div class="opt" style="display:flex;flex-direction:column;gap:8px">
+    <label class="row" for="sun">Sun time <input id="sun" type="range" min="6" max="18" step="0.25" value="11"> <span id="sunv" style="font-family:var(--mono);width:40px;text-align:right">11:00</span></label>
+    <div class="toggle">
+      <label for="t-panels"><input id="t-panels" type="checkbox" checked> Panels</label>
+      <label for="t-tanks"><input id="t-tanks" type="checkbox" checked> Water tanks</label>
+      <label for="t-walls"><input id="t-walls" type="checkbox" checked> Building</label>
+      <label for="t-spin"><input id="t-spin" type="checkbox"> Auto‑rotate</label>
+    </div>
+  </div>
+</section>
+
+<div class="hint">Drag to rotate · scroll / pinch to zoom · right‑drag to pan</div>
+
+<nav class="bar" aria-label="Camera views">
+  <button data-v="3d" aria-pressed="true">3D</button>
+  <button data-v="front" aria-pressed="false">Front</button>
+  <button data-v="side" aria-pressed="false">Side</button>
+  <button data-v="top" aria-pressed="false">Top</button>
+</nav>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+(function(){
+const el=document.getElementById('view');
+const renderer=new THREE.WebGLRenderer({antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+renderer.outputEncoding=THREE.sRGBEncoding;
+el.appendChild(renderer.domElement);
+
+const scene=new THREE.Scene();
+scene.background=new THREE.Color(0xbfd9ef);
+scene.fog=new THREE.Fog(0xbfd9ef,60,140);
+
+const camera=new THREE.PerspectiveCamera(40,1,0.1,400);
+const controls=new THREE.OrbitControls(camera,renderer.domElement);
+controls.enableDamping=true; controls.maxPolarAngle=Math.PI*0.495; controls.minDistance=6; controls.maxDistance=90;
+controls.target.set(0,4,0);
+
+// ---------- Lights
+scene.add(new THREE.HemisphereLight(0xeaf4ff,0x8a8f7a,0.65));
+const sun=new THREE.DirectionalLight(0xfff3dc,1.05);
+sun.castShadow=true; sun.shadow.mapSize.set(2048,2048);
+Object.assign(sun.shadow.camera,{left:-20,right:20,top:20,bottom:-20,near:1,far:80});
+sun.shadow.bias=-0.0005; scene.add(sun); scene.add(sun.target);
+
+// ---------- Materials
+const M={
+  wall:new THREE.MeshStandardMaterial({color:0xf3f3f0,roughness:.9}),
+  roof:new THREE.MeshStandardMaterial({color:0xcfcdc6,roughness:1}),
+  parapetTop:new THREE.MeshStandardMaterial({color:0xe2e0da,roughness:.9}),
+  steel:new THREE.MeshStandardMaterial({color:0x7d7d7d,metalness:.3,roughness:.6}),
+  alu:new THREE.MeshStandardMaterial({color:0x8c8c8c,metalness:.3,roughness:.6}),
+  tank:new THREE.MeshStandardMaterial({color:0xf7f8fa,roughness:.5}),
+  tankBand:new THREE.MeshStandardMaterial({color:0x1d3f9a,roughness:.5}),
+  ground:new THREE.MeshStandardMaterial({color:0x5c5c5c,roughness:1}),
+  dark:new THREE.MeshStandardMaterial({color:0x2a2f35,roughness:.6}),
+  window:new THREE.MeshStandardMaterial({color:0x6d8aa3,metalness:.3,roughness:.2}),
+};
+function box(w,h,d,mat,x,y,z,parent){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);m.position.set(x,y,z);m.castShadow=m.receiveShadow=true;(parent||scene).add(m);return m;}
+
+// ---------- Ground
+const g=new THREE.Mesh(new THREE.PlaneGeometry(300,300),M.ground);
+g.rotation.x=-Math.PI/2; g.receiveShadow=true; scene.add(g);
+const grid=new THREE.GridHelper(120,120,0x3a3a3a,0x4a4a4a); grid.position.y=0.01; scene.add(grid);
+
+// ---------- Building (x = length, z = depth, +z = south)
+const BL=16, BD=8, BH=3.5, PT=0.2, PH=0.9;
+const building=new THREE.Group(); scene.add(building);
+box(BL,BH,BD,M.wall,0,BH/2,0,building);
+box(BL-2*PT,0.02,BD-2*PT,M.roof,0,BH+0.01,0,building);
+box(BL,PH,PT,M.wall,0,BH+PH/2,BD/2-PT/2,building);
+box(BL,PH,PT,M.wall,0,BH+PH/2,-BD/2+PT/2,building);
+box(PT,PH,BD,M.wall,BL/2-PT/2,BH+PH/2,0,building);
+box(PT,PH,BD,M.wall,-BL/2+PT/2,BH+PH/2,0,building);
+// simple door + windows on south face
+box(1.1,2.2,0.05,M.dark,-5.5,1.1,BD/2+0.02,building);
+[-2,1.5,5].forEach(x=>box(1.6,1.2,0.05,M.window,x,1.9,BD/2+0.02,building));
+
+// ---------- Panel texture (mono cells, silver frame)
+function panelTexture(){
+  const c=document.createElement('canvas');c.width=256;c.height=512;const x=c.getContext('2d');
+  x.fillStyle='#c9cfd4';x.fillRect(0,0,256,512);
+  x.fillStyle='#0d1f4d';x.fillRect(8,8,240,496);
+  const cols=6,rows=12,cw=240/cols,ch=496/rows;
+  for(let i=0;i<cols;i++)for(let j=0;j<rows;j++){
+    const gx=8+i*cw+2,gy=8+j*ch+2;
+    const grd=x.createLinearGradient(gx,gy,gx+cw,gy+ch);grd.addColorStop(0,'#1d3f9a');grd.addColorStop(1,'#16307a');
+    x.fillStyle=grd;x.fillRect(gx,gy,cw-4,ch-4);
+    x.strokeStyle='rgba(200,215,255,.35)';x.lineWidth=1;
+    for(let k=1;k<4;k++){x.beginPath();x.moveTo(gx+k*(cw-4)/4,gy);x.lineTo(gx+k*(cw-4)/4,gy+ch-4);x.stroke();}
+  }
+  const t=new THREE.CanvasTexture(c);t.encoding=THREE.sRGBEncoding;t.anisotropy=8;return t;
+}
+const panelMat=new THREE.MeshStandardMaterial({map:panelTexture(),metalness:.35,roughness:.25});
+const panelBack=new THREE.MeshStandardMaterial({color:0xdadde0,roughness:.8});
+
+// ---------- Solar array on tilted frame
+const PW=1.134, PL=2.278, GAP=0.025, COLS=13, ROWS=2, TILT=THREE.MathUtils.degToRad(20);
+const arrW=COLS*PW+(COLS-1)*GAP, arrL=ROWS*PL+GAP;
+const FRONT_H=1.6;                         // clearance at low (south) edge above roof
+const cz=0.2;                               // array centre (z) on the roof
+const cy=BH+FRONT_H+(arrL/2)*Math.sin(TILT);
+const array=new THREE.Group(); array.position.set(0,cy,cz); array.rotation.x=TILT; scene.add(array);
+const panels=new THREE.Group(); array.add(panels);
+const mats=[M.alu,M.alu,panelMat,panelBack,M.alu,M.alu];
+for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
+  const m=new THREE.Mesh(new THREE.BoxGeometry(PW,0.04,PL),mats);
+  m.position.set(-arrW/2+PW/2+c*(PW+GAP),0.03,-arrL/2+PL/2+r*(PL+GAP));
+  m.castShadow=m.receiveShadow=true; panels.add(m);
+}
+// rails across (x) under panels
+[-arrL/2+0.45,-arrL/2+PL-0.45,arrL/2-PL+0.45,arrL/2-0.45].forEach(z=>box(arrW+0.2,0.05,0.05,M.alu,0,-0.03,z,array));
+// rafters along slope + legs
+const toWorld=(ly,lz)=>({y:cy+ly*Math.cos(TILT)-lz*Math.sin(TILT), z:cz+ly*Math.sin(TILT)+lz*Math.cos(TILT)});
+const frame=new THREE.Group(); scene.add(frame);
+const nLegs=7;
+for(let i=0;i<nLegs;i++){
+  const x=-arrW/2+0.4+i*(arrW-0.8)/(nLegs-1);
+  box(0.08,0.1,arrL+0.2,M.steel,x,-0.1,0,array);         // rafter
+  [arrL/2-0.25,-arrL/2+0.25].forEach(lz=>{               // front + back leg
+    const p=toWorld(-0.15,lz); const h=p.y-BH;
+    box(0.08,h,0.08,M.steel,x,BH+h/2,p.z,frame);
+    box(0.3,0.04,0.3,M.steel,x,BH+0.02,p.z,frame);         // base plate
+  });
+}
+// ties along x at leg tops
+[arrL/2-0.25,-arrL/2+0.25].forEach(lz=>{const p=toWorld(-0.2,lz);box(arrW-0.6,0.06,0.06,M.steel,0,p.y,p.z,frame);});
+
+// ---------- Water tanks (under the frame)
+const tanks=new THREE.Group(); scene.add(tanks);
+function tank(x,z){
+  const R=0.62,L=2.3,grp=new THREE.Group();grp.position.set(x,BH+0.35+R,z);
+  const body=new THREE.Mesh(new THREE.CylinderGeometry(R,R,L,40),M.tank);body.rotation.z=Math.PI/2;
+  body.castShadow=body.receiveShadow=true;grp.add(body);
+  [-L/2,L/2].forEach(e=>{const cap=new THREE.Mesh(new THREE.SphereGeometry(R,32,16,0,Math.PI*2,0,Math.PI/2),M.tank);
+    cap.scale.y=0.25;cap.rotation.z=e<0?Math.PI/2:-Math.PI/2;cap.position.x=e;cap.castShadow=true;grp.add(cap);});
+  [-0.75,0,0.75].forEach(o=>{const b=new THREE.Mesh(new THREE.CylinderGeometry(R+0.01,R+0.01,0.12,40),M.tankBand);
+    b.rotation.z=Math.PI/2;b.position.x=o;grp.add(b);});
+  const lid=new THREE.Mesh(new THREE.CylinderGeometry(0.2,0.2,0.1,24),M.tankBand);lid.position.y=R;grp.add(lid);
+  // stand
+  [-0.8,0.8].forEach(o=>{box(0.08,0.35,1.1,M.steel,o,-R-0.175,0,grp);});
+  tanks.add(grp);
+}
+tank(-4.2,-0.3); tank(-1.2,-0.3); tank(2.4,-0.3);
+// inverter + battery cabinet by the north parapet
+box(1.2,1.6,0.5,new THREE.MeshStandardMaterial({color:0xe9ecef,roughness:.6}),5.6,BH+0.8,-BD/2+PT+0.3,tanks);
+box(0.55,0.75,0.2,M.dark,6.7,BH+1.2,-BD/2+PT+0.15,tanks);
+
+// ---------- Camera presets
+const views={
+  '3d':{p:[18,14,22],t:[0,4,0]}, front:{p:[0,6,30],t:[0,4.2,0]},
+  side:{p:[30,6,0],t:[0,4.2,0]}, top:{p:[0,34,0.01],t:[0,3.5,0]}
+};
+let anim=null;
+function goView(k){
+  const v=views[k];anim={from:camera.position.clone(),to:new THREE.Vector3(...v.p),
+    tf:controls.target.clone(),tt:new THREE.Vector3(...v.t),t:0};
+  document.querySelectorAll('.bar button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===k));
+}
+camera.position.set(...views['3d'].p);
+document.querySelectorAll('.bar button').forEach(b=>b.onclick=()=>goView(b.dataset.v));
+
+// ---------- Sun position (simple path, south-facing)
+const sunIn=document.getElementById('sun'),sunV=document.getElementById('sunv');
+function setSun(h){
+  const a=(h-6)/12*Math.PI;            // 0 at sunrise, PI at sunset
+  const elev=Math.sin(a)*THREE.MathUtils.degToRad(62);
+  const az=Math.PI-a;                   // east -> south -> west
+  const r=40;
+  sun.position.set(Math.cos(az)*Math.cos(elev)*r*-1,Math.max(2,Math.sin(elev)*r),Math.abs(Math.sin(az))*Math.cos(elev)*r+4);
+  sun.intensity=0.25+0.85*Math.sin(a);
+  const hh=Math.floor(h),mm=Math.round((h-hh)*60);sunV.textContent=String(hh).padStart(2,'0')+':'+String(mm).padStart(2,'0');
+}
+sunIn.oninput=()=>setSun(+sunIn.value); setSun(+sunIn.value);
+
+// ---------- Toggles
+const bind=(id,obj)=>{const c=document.getElementById(id);c.onchange=()=>{[].concat(obj).forEach(o=>o.visible=c.checked)};};
+bind('t-panels',[panels]); bind('t-tanks',tanks); bind('t-walls',building);
+const spin=document.getElementById('t-spin');spin.onchange=()=>controls.autoRotate=spin.checked;
+controls.autoRotateSpeed=1.2;
+const sheet=document.getElementById('sheet'),minb=document.getElementById('minbtn');
+minb.onclick=()=>{const m=sheet.classList.toggle('min');minb.textContent=m?'Show':'Hide';};
+if(innerWidth<600){sheet.classList.add('min');minb.textContent='Show';}
+
+// ---------- Resize + loop
+function resize(){const w=el.clientWidth,h=el.clientHeight;renderer.setSize(w,h);camera.aspect=w/h;
+  camera.fov=w<600?55:40;camera.updateProjectionMatrix();}
+addEventListener('resize',resize);resize();
+controls.addEventListener('start',()=>{anim=null;});
+(function loop(){
+  requestAnimationFrame(loop);
+  if(anim){anim.t=Math.min(1,anim.t+0.04);const e=1-Math.pow(1-anim.t,3);
+    camera.position.lerpVectors(anim.from,anim.to,e);controls.target.lerpVectors(anim.tf,anim.tt,e);if(anim.t>=1)anim=null;}
+  controls.update();renderer.render(scene,camera);
+})();
+})();
+</script>
+</body></html>
