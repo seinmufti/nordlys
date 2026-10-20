@@ -27,4 +27,6 @@ export const hostedRoutes: HostedRoute[] = [
   { slug: "pr-logger", href: "https://pr-logger-railway.vercel.app/" },
   // Vite base is /wuza/; the Wuza deployment maps /wuza/* to its root.
   { slug: "wuza", href: "https://wuza-delta.vercel.app/wuza/" },
+  // Next.js basePath is /hireme, so its pages and /hireme/_next assets all live under the slug.
+  { slug: "hireme", href: "https://hireme-pink.vercel.app/hireme/" },
 ];
