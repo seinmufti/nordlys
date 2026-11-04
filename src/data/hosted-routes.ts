@@ -31,4 +31,6 @@ export const hostedRoutes: HostedRoute[] = [
   { slug: "hireme/demo", href: "https://hireme-demo.vercel.app/hireme/demo/" },
   // Next.js basePath is /hireme, so its pages and /hireme/_next assets all live under the slug.
   { slug: "hireme", href: "https://hireme-pink.vercel.app/hireme/" },
+  // Expo web export with baseUrl /bakre; the BaKre deployment maps /bakre/* to its files.
+  { slug: "bakre", href: "https://bakre.vercel.app/bakre/" },
 ];
