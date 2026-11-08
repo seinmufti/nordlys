@@ -23,7 +23,7 @@ const NORDLYS_PREFIXES = [
   "/pr-logger",
   "/wuza",
   "/hireme",
-  "/bakre",
+  "/rentobile",
 ];
 
 /** Public paths that only Dr. Niveen uses on this domain (root-relative build). */

@@ -8,6 +8,13 @@ const nextConfig: NextConfig = {
     "192.168.1.*",
     "192.168.0.*",
   ],
+  async redirects() {
+    return [
+      // Rentobile was previously hosted as BaKre at /bakre.
+      { source: "/bakre", destination: "/rentobile", permanent: true },
+      { source: "/bakre/:path*", destination: "/rentobile/:path*", permanent: true },
+    ];
+  },
   async rewrites() {
     return {
       beforeFiles: buildHostedRewrites(),
