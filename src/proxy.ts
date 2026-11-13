@@ -24,6 +24,7 @@ const NORDLYS_PREFIXES = [
   "/wuza",
   "/hireme",
   "/rentobile",
+  "/uk",
 ];
 
 /** Public paths that only Dr. Niveen uses on this domain (root-relative build). */

@@ -33,4 +33,6 @@ export const hostedRoutes: HostedRoute[] = [
   { slug: "hireme", href: "https://hireme-pink.vercel.app/hireme/" },
   // Expo web export with baseUrl /rentobile; the Rentobile deployment maps /rentobile/* to its files.
   { slug: "rentobile", href: "https://rentobile.vercel.app/rentobile/" },
+  // Next.js basePath is /uk (the UK accounting app), so its pages and /uk/_next assets live under the slug.
+  { slug: "uk", href: "https://uk-sable.vercel.app/uk/" },
 ];
